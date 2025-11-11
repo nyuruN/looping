@@ -79,53 +79,10 @@ namespace Bitmap {
 }
 
 // NotGui
-namespace Gui {
-  constexpr int LINE_SPACING = 1;
-
-  int cursor_x = 0;
-  int cursor_y = 0;
-
+namespace Ui {
   // Such a common function, why not built-in?
   float Lerp(float a, float b, float t) {
     return a + (b - a) * t;
-  }
-  void SetCursor(int x, int y) {
-    cursor_x = x;
-    cursor_y = y;
-  }
-  int GetTextSizeX(const char * str) {
-    return FONT_WIDTH * strlen(str);
-  }
-  void Text(const char * str) {
-    display.setCursor(cursor_x, cursor_y);
-    display.write(str);
-    cursor_y += FONT_HEIGHT + LINE_SPACING;
-  }
-  void TextWrapped(const char * string, int max_width) {
-    int max_chars = max_width / FONT_WIDTH;
-    size_t length = strlen(string);
-
-    // We temporarily terminate the string :(
-    char temp;
-    char * ptr = string;
-    size_t l = 0;
-    char * terminator;
-        
-    while (l < length) {
-      char * terminator = ptr + max_chars;
-      temp = *terminator;
-      *terminator = NULL;
-
-      // I don't know what you're on but why won't you work?? You are the fucking same
-      //Text(ptr);
-      display.setCursor(cursor_x, cursor_y);
-      display.write(ptr);
-      cursor_y += FONT_HEIGHT + LINE_SPACING;
- 
-      ptr += max_chars;
-      l += max_chars;
-      *ptr = temp;
-    }
   }
   void Scrollbar(float progress) {
     constexpr int SCROLLBAR_TRACK_X = SCREEN_WIDTH - 2;
@@ -134,7 +91,7 @@ namespace Gui {
     constexpr int SCROLLBAR_THUMB_X = SCREEN_WIDTH - SCROLLBAR_THUMB_WIDTH;
     constexpr float SCROLLBAR_MAX = float(SCREEN_HEIGHT - SCROLLBAR_THUMB_HEIGHT);
 
-    int scrollbar_thumb_y = int(Gui::Lerp(0.0f, SCROLLBAR_MAX, progress));
+    int scrollbar_thumb_y = int(Ui::Lerp(0.0f, SCROLLBAR_MAX, progress));
     for (int i = 0; i < SCREEN_HEIGHT; i += 2) {
       display.drawPixel(SCROLLBAR_TRACK_X, i, SSD1306_WHITE);
     }
@@ -221,7 +178,7 @@ namespace Ui {
       constexpr int size_y = FONT_HEIGHT + 10;
       
       // Smooth scroll
-      progress = Gui::Lerp(progress, float(state) / float(MenuState::End - 1), 0.2);
+      progress = Ui::Lerp(progress, float(state) / float(MenuState::End - 1), 0.2);
       int scrollY = -int(progress * float(size_y * (MenuState::End - 1) + 2 * (MenuState::End - 2)))
       + SCREEN_HEIGHT / 4;
 
@@ -230,7 +187,7 @@ namespace Ui {
       // Render items
       for (MenuState s = 0; s < MenuState::End; s = s + 1) {
         display.drawBitmap(anchor_x + 4, anchor_y + 5 + scrollY, ICONS[s], 8, 8, WHITE);
-        Gui::SetCursor(anchor_x + 4 + 8 + 2, anchor_y + 5 + scrollY);
+        display.setCursor(anchor_x + 4 + 8 + 2, anchor_y + 5 + scrollY);
         
         if (s == state) {
           display.drawRoundRect(
@@ -243,12 +200,12 @@ namespace Ui {
           );
         }
 
-        Gui::Text(LABELS[s]);
+        display.print(LABELS[s]);
         anchor_y += size_y + 2;
       }
 
       // Render Scrollbar
-      Gui::Scrollbar(progress);
+      Ui::Scrollbar(progress);
     }
   };
   class Dashboard {
@@ -331,6 +288,8 @@ namespace Ui {
       case MassOption::Heavy:
         next_state = AppState::Menu;
         break;
+      case MassOption::Custom:
+        break;
       }
     }
     void render() {
@@ -345,7 +304,7 @@ namespace Ui {
       
       // Smooth scroll
       float real_progress = float(option) / float(MassOption::End - 1);
-      progress = Gui::Lerp(progress, real_progress, 0.2);
+      progress = Ui::Lerp(progress, real_progress, 0.2);
       int scroll_y = -int(progress * float(SIZE_Y * (MassOption::End - 1) + ITEM_SPACING * (MassOption::End - 2)))
       + SCREEN_HEIGHT / 4;
 
@@ -390,7 +349,7 @@ namespace Ui {
       }
 
       // Render Scrollbar
-      Gui::Scrollbar(progress);
+      Ui::Scrollbar(progress);
     }
   };
 };
