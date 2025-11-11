@@ -5,10 +5,10 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 
-#define SCREEN_WIDTH 128 // OLED display width, in pixels
-#define SCREEN_HEIGHT 64 // OLED display height, in pixels
-#define FONT_HEIGHT 8
-#define FONT_WIDTH 6
+constexpr int SCREEN_WIDTH = 128;
+constexpr int SCREEN_HEIGHT = 64;
+constexpr int FONT_WIDTH = 6;
+constexpr int FONT_HEIGHT = 8;
 
 // Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
 // The pins for I2C are defined by the Wire-library. 
@@ -18,105 +18,88 @@
 #define SCREEN_ADDRESS 0x3C ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
-// Paste your generated bitmap data here
-static const unsigned char PROGMEM skull_bitmap[] = {
-B00000111, B11100000, 
-B00011000, B00011000, 
-B00100000, B00000100, 
-B00100000, B00000100, 
-B01000000, B00000010, 
-B01000000, B00000010, 
-B10011110, B01111001, 
-B10111110, B01111101, 
-B10111110, B01111101, 
-B10111110, B01111101, 
-B01011100, B00111010, 
-B00100001, B10000100, 
-B00010001, B10001000, 
-B00010000, B00001000, 
-B00010010, B01001000, 
-B00001111, B11110000,
-};
-
-static const unsigned char PROGMEM backarrow_bitmap[] = {
-B00000000, 
-B00000000, 
-B00100010, 
-B01000010, 
-B11111110, 
-B01000000, 
-B00100000, 
-B00000000,
-};
-
-static const unsigned char PROGMEM gear_bitmap[] = {
-B00000111, B11100000, 
-B00011000, B00011000, 
-B00100100, B00000100, 
-B01001000, B00000010, 
-B01010100, B00000010, 
-B10001000, B00000001, 
-B10010000, B00000001, 
-B10000000, B00000001, 
-B10000000, B00000001, 
-B10000000, B00000001, 
-B10000000, B00000001, 
-B01000000, B00000010, 
-B01000000, B00000010, 
-B00100000, B00000100, 
-B00011000, B00011000, 
-B00000111, B11100000,
-};
-
-void setup() {
-  Serial.begin(9600);
-  Serial.println(""); // Open Serial monitor on WOKWI
-
-  display.setTextWrap(false);
-
-  // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
-  if(!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
-    //Serial.println(F("SSD1306 allocation failed"));
-    for(;;); // Don't proceed, loop forever
-  }
-
-  // Show Adafruit default logo
-  display.display();
-  delay(1000);
+// Used bitmaps
+namespace Bitmap {
+  static const unsigned char PROGMEM SKULL[] = {
+    B00000111, B11100000, 
+    B00011000, B00011000, 
+    B00100000, B00000100, 
+    B00100000, B00000100, 
+    B01000000, B00000010, 
+    B01000000, B00000010, 
+    B10011110, B01111001, 
+    B10111110, B01111101, 
+    B10111110, B01111101, 
+    B10111110, B01111101, 
+    B01011100, B00111010, 
+    B00100001, B10000100, 
+    B00010001, B10001000, 
+    B00010000, B00001000, 
+    B00010010, B01001000, 
+    B00001111, B11110000,
+  };
+  static const unsigned char PROGMEM BACKARROW[] = {
+    B00000000, 
+    B00000000, 
+    B00100010, 
+    B01000010, 
+    B11111110, 
+    B01000000, 
+    B00100000, 
+    B00000000,
+  };
+  static const unsigned char PROGMEM GEAR[] = {
+    B00000111, B11100000, 
+    B00011000, B00011000, 
+    B00100100, B00000100, 
+    B01001000, B00000010, 
+    B01010100, B00000010, 
+    B10001000, B00000001, 
+    B10010000, B00000001, 
+    B10000000, B00000001, 
+    B10000000, B00000001, 
+    B10000000, B00000001, 
+    B10000000, B00000001, 
+    B01000000, B00000010, 
+    B01000000, B00000010, 
+    B00100000, B00000100, 
+    B00011000, B00011000, 
+    B00000111, B11100000,
+  };
+  static const unsigned char PROGMEM BALL[] = {
+    B00111100, 
+    B01000010, 
+    B10000001, 
+    B10000001, 
+    B10000001, 
+    B10000001, 
+    B01000010, 
+    B00111100,
+  };
 }
 
-float lerp(float a, float b, float t) {
-  return a + (b - a) * t;
-}
-
-// We have the following primitives
-// A box
-// A box with no fill (4 boxes)
-// Lines (A really really thin box)
-// Text
-// Bitmaps
-// This is enough to construct an UI
+// NotGui
 namespace Gui {
-  typedef struct{
-    int x;
-    int y;
-  } Vec2;
-
   constexpr int LINE_SPACING = 1;
 
-  Vec2 cursor = {0, 0};
+  int cursor_x = 0;
+  int cursor_y = 0;
 
-  void SetCursor(int x, int y) {
-    cursor.x = x;
-    cursor.y = y;
+  // Such a common function, why not built-in?
+  float Lerp(float a, float b, float t) {
+    return a + (b - a) * t;
   }
-  Vec2 GetTextSize(const char * str) {
-    return {FONT_WIDTH * strlen(str), FONT_HEIGHT};
+  void SetCursor(int x, int y) {
+    cursor_x = x;
+    cursor_y = y;
+  }
+  int GetTextSizeX(const char * str) {
+    return FONT_WIDTH * strlen(str);
   }
   void Text(const char * str) {
-    display.setCursor(cursor.x, cursor.y);
+    display.setCursor(cursor_x, cursor_y);
     display.write(str);
-    cursor.y += FONT_HEIGHT + LINE_SPACING;
+    cursor_y += FONT_HEIGHT + LINE_SPACING;
   }
   void TextWrapped(const char * string, int max_width) {
     int max_chars = max_width / FONT_WIDTH;
@@ -135,218 +118,405 @@ namespace Gui {
 
       // I don't know what you're on but why won't you work?? You are the fucking same
       //Text(ptr);
-      display.setCursor(cursor.x, cursor.y);
+      display.setCursor(cursor_x, cursor_y);
       display.write(ptr);
-      cursor.y += FONT_HEIGHT + LINE_SPACING;
+      cursor_y += FONT_HEIGHT + LINE_SPACING;
  
       ptr += max_chars;
       l += max_chars;
       *ptr = temp;
     }
   }
-}
+  void Scrollbar(float progress) {
+    constexpr int SCROLLBAR_TRACK_X = SCREEN_WIDTH - 2;
+    constexpr int SCROLLBAR_THUMB_WIDTH = 3;
+    constexpr int SCROLLBAR_THUMB_HEIGHT = 8;
+    constexpr int SCROLLBAR_THUMB_X = SCREEN_WIDTH - SCROLLBAR_THUMB_WIDTH;
+    constexpr float SCROLLBAR_MAX = float(SCREEN_HEIGHT - SCROLLBAR_THUMB_HEIGHT);
 
-
-// Final sizes are resolved at runtime
-// Each element has a border size, padding, margin, fix height and width
-// Border rendering is resolved at runtime
-// 
-// Masse * * * * * * (=====)
-class Menu {
-public:
-  enum MenuState {
-    Back = 0,
-    OptionA,
-    OptionB,
-    OptionC,
-    OptionD,
-    End,
-  };
-
-  bool active = false;
-  bool option_a = false;
-  bool lock = false;
-private:
-  MenuState state = MenuState::OptionA;
-public:
-  void up() {
-    if (lock) return;
-    state = (state - 1 == -1) ? MenuState::End - 1 : (state - 1);
-  }
-  void down() {
-    if (lock) return;
-    state = (state + 1 == MenuState::End) ? 0 : (state + 1);
-  }
-  void press() {
-    switch (state) {
-    case MenuState::Back:
-      active = false;
-      break;
-    case MenuState::OptionA:
-      option_a = !option_a;
-      lock = !lock;
-      Serial.println("Option A pressed!");
-      break;
-    }
-  }
-  void render() {  
-    display.setTextSize(1); // Draw 2X-scale text
-    display.setTextColor(SSD1306_WHITE);
-
-    static const unsigned char * icons[] = {
-      backarrow_bitmap,
-      skull_bitmap,
-      gear_bitmap,
-      backarrow_bitmap,
-      backarrow_bitmap
-    };
-    static const char * labels[] = {
-      "Back",
-      "Option A",
-      "Option B",
-      "Option C",
-      "Option D",
-    };
-
-    const int anchor_x = 4;
-    int anchor_y = 4;
-    const int size_x = 120;
-    const int size_y = FONT_HEIGHT + 10;
-    
-    // Smooth scroll
-    static float progress = float(state) / float(MenuState::End - 1);
-    float real_progress = float(state) / float(MenuState::End - 1);
-    progress = lerp(progress, real_progress, 0.2);
-    int scrollY = -int(progress * float(size_y * (MenuState::End - 1) + 2 * (MenuState::End - 2)))
-     + SCREEN_HEIGHT / 4;
-
-    display.setTextColor(SSD1306_WHITE);
-
-    // Render items
-    for (MenuState s = 0; s < MenuState::End; s = s + 1) {
-      display.drawBitmap(anchor_x + 4, anchor_y + 5 + scrollY, icons[s], 8, 8, WHITE);
-      Gui::SetCursor(anchor_x + 4 + 8 + 2, anchor_y + 5 + scrollY);
-      
-      if (s == state) {
-        display.drawRoundRect(
-          anchor_x,
-          anchor_y + scrollY,
-          size_x,
-          size_y,
-          3,
-          SSD1306_WHITE
-        );
-      }
-
-      Gui::Text(labels[s]);
-      anchor_y += size_y + 2;
-    }
-
-    // Render Scrollbar
-    const int scrollbar_x = SCREEN_WIDTH - 2;
+    int scrollbar_thumb_y = int(Gui::Lerp(0.0f, SCROLLBAR_MAX, progress));
     for (int i = 0; i < SCREEN_HEIGHT; i += 2) {
-      display.drawPixel(scrollbar_x, i, SSD1306_WHITE);
+      display.drawPixel(SCROLLBAR_TRACK_X, i, SSD1306_WHITE);
     }
-    int scrollbar_y = int(lerp(float(4), float(SCREEN_HEIGHT - 4), progress));
     display.fillRect(
-      scrollbar_x - 1,
-      scrollbar_y - 4,
-      3,
-      8,
+      SCROLLBAR_THUMB_X,
+      scrollbar_thumb_y,
+      SCROLLBAR_THUMB_WIDTH,
+      SCROLLBAR_THUMB_HEIGHT,
       SSD1306_WHITE
     );
+  }
+}
 
+// Different UI sections that are independent of each other
+enum AppState {
+  Dashboard = 0,
+  Measurement,
+  Menu,
+  MassSetup,
+  HeightSetup,
+  Settings,
+  Credits,
+};
+AppState app_state = AppState::Dashboard;
+AppState next_state = -1;
 
+// Each element should be confined by anchor & size
+// Every size and position should be known at compile time
+// and no size resolver is required
+namespace Ui {
+  class Menu {
+    public:
+    enum MenuState {
+      Back = 0,
+      MassSetup,
+      HeightSetup,
+      Settings,
+      Credits,
+      End,
+    };
+    static constexpr int ITEMS = MenuState::End;
+    // I have no words...
+    static inline constexpr const unsigned char * ICONS[ITEMS] = {
+      Bitmap::BACKARROW,
+      Bitmap::BACKARROW,
+      Bitmap::BACKARROW,
+      Bitmap::BACKARROW,
+      Bitmap::BACKARROW
+    };
+    static inline constexpr char * LABELS[ITEMS] = {
+      "Back",
+      "Mass",
+      "Height",
+      "Settings",
+      "Credits",
+    };
 
-    if (option_a) {
-      constexpr int dialog_width = 60;
-      constexpr int dialog_height = 40;
-      constexpr int anchor_x = SCREEN_WIDTH / 2 - dialog_width / 2;
-      constexpr int anchor_y = SCREEN_HEIGHT / 2 - dialog_height / 2;
+    private:
+    MenuState state = MenuState::MassSetup;
 
-      display.fillRect(
-        anchor_x,
-        anchor_y,
-        dialog_width,
-        dialog_height,
-        SSD1306_BLACK
-      );
-      
-      display.drawRect(
-        anchor_x,
-        anchor_y,
-        dialog_width,
-        dialog_height,
-        SSD1306_WHITE
-      );
+    public:
+    float progress = float(state) / float(MenuState::End - 1); // Current scroll state
 
-      Gui::SetCursor(anchor_x + 2, anchor_y + 2);
-
-      Gui::Text("Hey babe");
+    void up() {
+      state = (state - 1 == -1) ? MenuState::End - 1 : (state - 1);
     }
+    void down() {
+      state = (state + 1 == MenuState::End) ? 0 : (state + 1);
+    }
+    void press() {
+      switch (state) {
+      case MenuState::Back:
+        next_state = AppState::Dashboard;
+        break;
+      case MenuState::MassSetup:
+        next_state = AppState::MassSetup;
+        break;
+      }
+    }
+    void render() {  
+      constexpr int anchor_x = 4;
+      int anchor_y = 4;
+      constexpr int size_x = 120;
+      constexpr int size_y = FONT_HEIGHT + 10;
+      
+      // Smooth scroll
+      progress = Gui::Lerp(progress, float(state) / float(MenuState::End - 1), 0.2);
+      int scrollY = -int(progress * float(size_y * (MenuState::End - 1) + 2 * (MenuState::End - 2)))
+      + SCREEN_HEIGHT / 4;
+
+      display.setTextColor(SSD1306_WHITE);
+
+      // Render items
+      for (MenuState s = 0; s < MenuState::End; s = s + 1) {
+        display.drawBitmap(anchor_x + 4, anchor_y + 5 + scrollY, ICONS[s], 8, 8, WHITE);
+        Gui::SetCursor(anchor_x + 4 + 8 + 2, anchor_y + 5 + scrollY);
+        
+        if (s == state) {
+          display.drawRoundRect(
+            anchor_x,
+            anchor_y + scrollY,
+            size_x,
+            size_y,
+            3,
+            SSD1306_WHITE
+          );
+        }
+
+        Gui::Text(LABELS[s]);
+        anchor_y += size_y + 2;
+      }
+
+      // Render Scrollbar
+      Gui::Scrollbar(progress);
+    }
+  };
+  class Dashboard {
+    public:
+    void render() {
+      float t = float(millis()) / 250.;
+      // Move back and forth after a sine wave
+      int offset_x = int(sin(t)* 10.);
+      t = sin(t);
+      t = 1. - t * t;
+      t *= 10.;
+      // Move up and down after a up side down parabula
+      int offset_y = int(t);
+
+      display.drawBitmap(
+        display.width() / 2 - 8 + offset_x,
+        display.height() / 2 - (FONT_HEIGHT + 16 + 2) / 2 - offset_y,
+        Bitmap::SKULL, 16, 16, WHITE
+      );
+
+      display.setCursor(
+        display.width() / 2 - (FONT_WIDTH * 17 / 2),
+        display.height() / 2 - (FONT_HEIGHT + 16 + 2) / 2 + 16 + 2
+      );
+
+      display.println("Imagine dying lol");
+    }
+  }; 
+  class MassSetup {
+    public:
+    enum MassOption {
+      Current = 0,
+      Light,
+      Medium,
+      Heavy,
+      Custom,
+      End,
+    };
+    static constexpr int ITEMS = MassOption::End;
+    static inline constexpr const unsigned char * ICONS[ITEMS] = {
+      Bitmap::BACKARROW,
+      Bitmap::BALL,
+      Bitmap::BALL,
+      Bitmap::BALL,
+      Bitmap::BACKARROW
+    };
+    static inline constexpr const char * LABELS[ITEMS] = {
+      "Current",
+      "Light",
+      "Medium",
+      "Heavy",
+      "Custom",
+    };
+    static inline constexpr int PRESETS[3] = { // 1 ^= 10 mg
+      2500, // light: 25.00 g
+      5000, // medium: 50.00 g
+      10000, // heavy: 100.00 g
+    };
+
+    MassOption option = MassOption::Current;
+    float progress = float(option) / float(MassOption::End - 1); // Current scroll state
+
+    void up() {
+      option = (option - 1 == -1) ? MassOption::End - 1 : (option - 1);
+    }
+    void down() {
+      option = (option + 1 == MassOption::End) ? 0 : (option + 1);
+    }
+    void press() {
+      switch (option) {
+      case MassOption::Current:
+        next_state = AppState::Menu;
+        break;
+      case MassOption::Light:
+        next_state = AppState::Menu;
+        break;
+      case MassOption::Medium:
+        next_state = AppState::Menu;
+        break;
+      case MassOption::Heavy:
+        next_state = AppState::Menu;
+        break;
+      }
+    }
+    void render() {
+      constexpr int ANCHOR_X = 4;
+      int anchor_y = 4;
+      constexpr int ITEM_SPACING = 2;
+      constexpr int ICON_TEXT_GAP = 2; // This just cannot be 3
+      constexpr int PADDING_X = 4;
+      constexpr int PADDING_Y = 5;
+      constexpr int SIZE_X = 120;
+      constexpr int SIZE_Y = FONT_HEIGHT + 10;
+      
+      // Smooth scroll
+      float real_progress = float(option) / float(MassOption::End - 1);
+      progress = Gui::Lerp(progress, real_progress, 0.2);
+      int scroll_y = -int(progress * float(SIZE_Y * (MassOption::End - 1) + ITEM_SPACING * (MassOption::End - 2)))
+      + SCREEN_HEIGHT / 4;
+
+      // Render items
+      for (MassOption s = 0; s < MassOption::End; s = s + 1) {
+        display.drawBitmap(ANCHOR_X + PADDING_X, anchor_y + PADDING_Y + scroll_y, ICONS[s], 8, 8, WHITE);
+        display.setCursor(ANCHOR_X + PADDING_X + 8 + ICON_TEXT_GAP, anchor_y + PADDING_Y + scroll_y);
+        
+        if (s == option) {
+          display.drawRoundRect(
+            ANCHOR_X,
+            anchor_y + scroll_y,
+            SIZE_X,
+            SIZE_Y,
+            3,
+            SSD1306_WHITE
+          );
+        }
+
+        int mass;
+        if (s == MassOption::Current)
+          mass = 0;
+        else if (s == MassOption::Custom)
+          mass = 0;
+        else
+          mass = PRESETS[s - MassOption::Light];
+
+        display.print(LABELS[s]);
+
+        constexpr int WEIGHT_CHARS = 6;
+        char buf[WEIGHT_CHARS + 1] = {}; // shouldn't be larger than XXXX.XX (1kg)
+        sprintf(buf, "%6.3dg", mass); // 6 padding, 3 precision minimum
+        
+        constexpr int WEIGHT_ANCHOR_X = (ANCHOR_X + SIZE_X) - PADDING_X - FONT_WIDTH * (WEIGHT_CHARS + 1);
+        display.setCursor(WEIGHT_ANCHOR_X, anchor_y + PADDING_Y + scroll_y);
+        display.print(buf);
+
+        // Draw decimal point
+        display.drawPixel(WEIGHT_ANCHOR_X + FONT_WIDTH * (WEIGHT_CHARS - 2) - 1, anchor_y + PADDING_Y + scroll_y + FONT_HEIGHT - 1, SSD1306_WHITE);
+
+        anchor_y += SIZE_Y + ITEM_SPACING;
+      }
+
+      // Render Scrollbar
+      Gui::Scrollbar(progress);
+    }
+  };
+};
+
+class App {
+  public:
+  Ui::Menu menu = Ui::Menu();
+  Ui::Dashboard dashboard = Ui::Dashboard();
+  Ui::MassSetup masssetup = Ui::MassSetup();
+
+  public:
+  void up() {
+    switch (app_state) {
+    case AppState::Menu:
+      menu.up();
+      break;
+    case AppState::MassSetup:
+      masssetup.up();
+      break;
+    }
+  }
+  void down() {
+    switch (app_state) {
+    case AppState::Menu:
+      menu.down();
+      break;
+    case AppState::MassSetup:
+      masssetup.down();
+      break;
+    }
+  }
+  void press() {
+    switch (app_state) {
+    case AppState::Menu:
+      menu.press();
+      break;
+    case AppState::MassSetup:
+      masssetup.press();
+      break;
+    case AppState::Dashboard:
+      next_state = AppState::Menu;
+      break;
+    }
+  }
+  void enter(AppState prev_state) {
+    switch(app_state) {
+    case AppState::Menu:
+      menu.progress = -0.5f;
+      break;
+    case AppState::MassSetup:
+      masssetup.progress = -0.5f;
+      break;
+    }
+  }
+  void exit(AppState next_state) {
+
+  }
+  void setup() {
+
+    // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
+    if(!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
+      Serial.println(F("SSD1306 allocation failed"));
+      for(;;); // Don't proceed, loop forever
+    }
+
+    // Show Adafruit default logo
+    display.display();
+    delay(1000);
+    
+    display.setTextWrap(false);
+    display.setTextSize(1); // Draw 2X-scale text
+    display.setTextColor(SSD1306_WHITE);
+  }
+  void render() {
+    // State change logic
+    if (next_state != -1) {
+      exit(next_state);
+      auto prev_state = app_state;
+      app_state = next_state;
+      next_state = -1;
+      enter(prev_state);
+    }
+
+    // Menu render
+    display.clearDisplay();
+
+    switch (app_state) {
+    case AppState::Menu:
+      menu.render();
+      break;
+    case AppState::Dashboard:
+      dashboard.render();
+      break;
+    case AppState::MassSetup:
+      masssetup.render();
+    }
+
+    display.display();
   }
 };
 
-Menu menu = Menu();
 
-void render_logopage() {
-  float t = float(millis()) / 250.;
-  // Move back and forth after a sine wave
-  int offset_x = int(sin(t)* 10.);
-  t = sin(t);
-  t = 1. - t * t;
-  t *= 10.;
-  // Move up and down after a up side down parabula
-  int offset_y = int(t);
+// Arduino Code
+App app = App();
+void setup() {
+  Serial.begin(9600);
+  Serial.println(""); // TEMPORARY: Open Serial monitor on WOKWI
 
-  display.drawBitmap(
-    display.width() / 2 - 8 + offset_x,
-    display.height() / 2 - (FONT_HEIGHT + 16 + 2) / 2 - offset_y,
-    skull_bitmap, 16, 16, WHITE
-  );
-
-  display.setCursor(
-    display.width() / 2 - (FONT_WIDTH * 17 / 2),
-    display.height() / 2 - (FONT_HEIGHT + 16 + 2) / 2 + 16 + 2
-  );
-  
-  display.setTextSize(1); // Draw 2X-scale text
-  display.setTextColor(SSD1306_WHITE);
-
-  display.println("Imagine dying lol");
+  app.setup();
 }
-
 void loop() {
   // TEMPORARY SERIAL CONTROL
   if (Serial.available() > 0) {
     // read the incoming byte:
     int serialInput = Serial.read();
 
-    if (menu.active) {
-      if (serialInput == 'w') {
-        menu.up();
-      }
-      if (serialInput == 's') {
-        menu.down();
-      }
-      if (serialInput == 'x') {
-        menu.press();
-      }
-    } else {
-      if (serialInput == 'x') {
-        menu.active = !menu.active;
-      }
+    if (serialInput == 'w') {
+      app.up();
+    }
+    if (serialInput == 's') {
+      app.down();
+    }
+    if (serialInput == 'x') {
+      app.press();
     }
   }
 
-  // Menu render
-  display.clearDisplay();
-
-  if (menu.active) {
-    menu.render();
-  } else {
-    render_logopage();
-  }
-
-  display.display();
+  app.render();
 }
