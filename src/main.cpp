@@ -80,6 +80,8 @@ namespace Bitmap {
 
 // NotGui
 namespace Ui {
+  float progress = 0.0f;
+
   // Such a common function, why not built-in?
   float Lerp(float a, float b, float t) {
     return a + (b - a) * t;
@@ -102,6 +104,51 @@ namespace Ui {
       SCROLLBAR_THUMB_HEIGHT,
       SSD1306_WHITE
     );
+  }
+  void Menuuu(
+    int option_first,
+    int option_end, // This is not a value! This is last option + 1
+    int* selected,
+    const char ** labels, // This can display a maximum of 17 characters!
+    const unsigned char ** icons
+  ) {
+    constexpr int ANCHOR_X = 4;
+    int anchor_y = 4;
+    constexpr int ITEM_SPACING = 2;
+    constexpr int ICON_TEXT_GAP = 2; // This just cannot be 3, I... don't know why
+    constexpr int PADDING_X = 4;
+    constexpr int PADDING_Y = 5;
+    constexpr int SIZE_X = 120;
+    constexpr int SIZE_Y = FONT_HEIGHT + 10;
+    
+    // Smooth scroll
+    float real_progress = float(*selected) / float(option_end - 1);
+    progress = Ui::Lerp(progress, real_progress, 0.2);
+    int scroll_y = -int(progress * float(SIZE_Y * (option_end - 1) + ITEM_SPACING * (option_end - 2)))
+    + SCREEN_HEIGHT / 4;
+
+    // Render items
+    for (int s = option_first; s < option_end; s++) {
+      display.drawBitmap(ANCHOR_X + PADDING_X, anchor_y + PADDING_Y + scroll_y, icons[s], 8, 8, WHITE);
+      display.setCursor(ANCHOR_X + PADDING_X + 8 + ICON_TEXT_GAP, anchor_y + PADDING_Y + scroll_y);
+      
+      if (s == *selected) {
+        display.drawRoundRect(
+          ANCHOR_X,
+          anchor_y + scroll_y,
+          SIZE_X,
+          SIZE_Y,
+          3,
+          SSD1306_WHITE
+        );
+      }
+
+      display.print(labels[s]);
+      anchor_y += SIZE_Y + ITEM_SPACING;
+    }
+
+    // Render Scrollbar
+    Ui::Scrollbar(progress);
   }
 }
 
@@ -153,8 +200,6 @@ namespace Ui {
     MenuState state = MenuState::MassSetup;
 
     public:
-    float progress = float(state) / float(MenuState::End - 1); // Current scroll state
-
     void up() {
       state = (state - 1 == -1) ? MenuState::End - 1 : (state - 1);
     }
@@ -171,41 +216,28 @@ namespace Ui {
         break;
       }
     }
-    void render() {  
-      constexpr int anchor_x = 4;
-      int anchor_y = 4;
-      constexpr int size_x = 120;
-      constexpr int size_y = FONT_HEIGHT + 10;
-      
-      // Smooth scroll
-      progress = Ui::Lerp(progress, float(state) / float(MenuState::End - 1), 0.2);
-      int scrollY = -int(progress * float(size_y * (MenuState::End - 1) + 2 * (MenuState::End - 2)))
-      + SCREEN_HEIGHT / 4;
-
-      display.setTextColor(SSD1306_WHITE);
-
-      // Render items
-      for (MenuState s = 0; s < MenuState::End; s = s + 1) {
-        display.drawBitmap(anchor_x + 4, anchor_y + 5 + scrollY, ICONS[s], 8, 8, WHITE);
-        display.setCursor(anchor_x + 4 + 8 + 2, anchor_y + 5 + scrollY);
-        
-        if (s == state) {
-          display.drawRoundRect(
-            anchor_x,
-            anchor_y + scrollY,
-            size_x,
-            size_y,
-            3,
-            SSD1306_WHITE
-          );
-        }
-
-        display.print(LABELS[s]);
-        anchor_y += size_y + 2;
-      }
-
-      // Render Scrollbar
-      Ui::Scrollbar(progress);
+    void render() {
+      static const unsigned char * icons[ITEMS] = {
+        Bitmap::BACKARROW,
+        Bitmap::BACKARROW,
+        Bitmap::BACKARROW,
+        Bitmap::BACKARROW,
+        Bitmap::BACKARROW
+      };
+      static const char * labels[ITEMS] = {
+        "Back",
+        "Mass",
+        "Height",
+        "Settings",
+        "Credits",
+      };
+      Ui::Menuuu(
+        MenuState::Back,
+        MenuState::End,
+        (int*)&state,
+        LABELS,
+        ICONS
+      );
     }
   };
   class Dashboard {
@@ -252,11 +284,10 @@ namespace Ui {
       Bitmap::BALL,
       Bitmap::BACKARROW
     };
-    static inline constexpr const char * LABELS[ITEMS] = {
-      "Current",
-      "Light",
-      "Medium",
-      "Heavy",
+    static inline constexpr const char * PRESET_LABELS[ITEMS] = {
+      "Light       25.0g",
+      "Medium      50.0g",
+      "Heavy      100.0g",
       "Custom",
     };
     static inline constexpr int PRESETS[3] = { // 1 ^= 10 mg
@@ -266,7 +297,6 @@ namespace Ui {
     };
 
     MassOption option = MassOption::Current;
-    float progress = float(option) / float(MassOption::End - 1); // Current scroll state
 
     void up() {
       option = (option - 1 == -1) ? MassOption::End - 1 : (option - 1);
@@ -293,63 +323,19 @@ namespace Ui {
       }
     }
     void render() {
-      constexpr int ANCHOR_X = 4;
-      int anchor_y = 4;
-      constexpr int ITEM_SPACING = 2;
-      constexpr int ICON_TEXT_GAP = 2; // This just cannot be 3
-      constexpr int PADDING_X = 4;
-      constexpr int PADDING_Y = 5;
-      constexpr int SIZE_X = 120;
-      constexpr int SIZE_Y = FONT_HEIGHT + 10;
-      
-      // Smooth scroll
-      float real_progress = float(option) / float(MassOption::End - 1);
-      progress = Ui::Lerp(progress, real_progress, 0.2);
-      int scroll_y = -int(progress * float(SIZE_Y * (MassOption::End - 1) + ITEM_SPACING * (MassOption::End - 2)))
-      + SCREEN_HEIGHT / 4;
+      static char current_buf[18];
+      static const char *labels[5] = {
+        current_buf,
+        PRESET_LABELS[0],
+        PRESET_LABELS[1],
+        PRESET_LABELS[2],
+        PRESET_LABELS[3],
+      };
 
-      // Render items
-      for (MassOption s = 0; s < MassOption::End; s = s + 1) {
-        display.drawBitmap(ANCHOR_X + PADDING_X, anchor_y + PADDING_Y + scroll_y, ICONS[s], 8, 8, WHITE);
-        display.setCursor(ANCHOR_X + PADDING_X + 8 + ICON_TEXT_GAP, anchor_y + PADDING_Y + scroll_y);
-        
-        if (s == option) {
-          display.drawRoundRect(
-            ANCHOR_X,
-            anchor_y + scroll_y,
-            SIZE_X,
-            SIZE_Y,
-            3,
-            SSD1306_WHITE
-          );
-        }
+      constexpr int mass = 0;
+      sprintf(current_buf, "Current%9.1dg", mass);
 
-        int mass;
-        if (s == MassOption::Current)
-          mass = 0;
-        else if (s == MassOption::Custom)
-          mass = 0;
-        else
-          mass = PRESETS[s - MassOption::Light];
-
-        display.print(LABELS[s]);
-
-        constexpr int WEIGHT_CHARS = 6;
-        char buf[WEIGHT_CHARS + 1] = {}; // shouldn't be larger than XXXX.XX (1kg)
-        sprintf(buf, "%6.3dg", mass); // 6 padding, 3 precision minimum
-        
-        constexpr int WEIGHT_ANCHOR_X = (ANCHOR_X + SIZE_X) - PADDING_X - FONT_WIDTH * (WEIGHT_CHARS + 1);
-        display.setCursor(WEIGHT_ANCHOR_X, anchor_y + PADDING_Y + scroll_y);
-        display.print(buf);
-
-        // Draw decimal point
-        display.drawPixel(WEIGHT_ANCHOR_X + FONT_WIDTH * (WEIGHT_CHARS - 2) - 1, anchor_y + PADDING_Y + scroll_y + FONT_HEIGHT - 1, SSD1306_WHITE);
-
-        anchor_y += SIZE_Y + ITEM_SPACING;
-      }
-
-      // Render Scrollbar
-      Ui::Scrollbar(progress);
+      Ui::Menuuu(MassOption::Current, MassOption::End, (int*)&option, labels, ICONS);
     }
   };
 };
@@ -397,10 +383,8 @@ class App {
   void enter(AppState prev_state) {
     switch(app_state) {
     case AppState::Menu:
-      menu.progress = -0.5f;
       break;
     case AppState::MassSetup:
-      masssetup.progress = -0.5f;
       break;
     }
   }
