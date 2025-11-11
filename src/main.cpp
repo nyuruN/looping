@@ -85,6 +85,10 @@ void setup() {
   delay(1000);
 }
 
+float lerp(float a, float b, float t) {
+  return a + (b - a) * t;
+}
+
 // We have the following primitives
 // A box
 // A box with no fill (4 boxes)
@@ -105,6 +109,9 @@ namespace Gui {
   void SetCursor(int x, int y) {
     cursor.x = x;
     cursor.y = y;
+  }
+  Vec2 GetTextSize(const char * str) {
+    return {FONT_WIDTH * strlen(str), FONT_HEIGHT};
   }
   void Text(const char * str) {
     display.setCursor(cursor.x, cursor.y);
@@ -155,6 +162,7 @@ public:
     OptionD,
     End,
   };
+
   bool active = false;
   bool option_a = false;
   bool lock = false;
@@ -184,57 +192,71 @@ public:
   void render() {  
     display.setTextSize(1); // Draw 2X-scale text
     display.setTextColor(SSD1306_WHITE);
-    display.drawRect(0, 0, display.width(), display.height(), SSD1306_WHITE);
 
+    static const unsigned char * icons[] = {
+      backarrow_bitmap,
+      skull_bitmap,
+      gear_bitmap,
+      backarrow_bitmap,
+      backarrow_bitmap
+    };
+    static const char * labels[] = {
+      "Back",
+      "Option A",
+      "Option B",
+      "Option C",
+      "Option D",
+    };
 
-    display.drawBitmap(1, 1, backarrow_bitmap, 8, 8, WHITE);
-    Gui::SetCursor(8 + 1, 2);
-    state == MenuState::Back ? display.setTextColor(SSD1306_BLACK, SSD1306_WHITE) : display.setTextColor(SSD1306_WHITE);
-    Gui::Text("Back");
+    const int anchor_x = 4;
+    int anchor_y = 4;
+    const int size_x = 120;
+    const int size_y = FONT_HEIGHT + 10;
     
-    Gui::cursor.x = 1;
-
-    state == MenuState::OptionA ? display.setTextColor(SSD1306_BLACK, SSD1306_WHITE) : display.setTextColor(SSD1306_WHITE);
-    Gui::Text("OptionA");
-
-    state == MenuState::OptionB ? display.setTextColor(SSD1306_BLACK, SSD1306_WHITE) : display.setTextColor(SSD1306_WHITE);
-    Gui::Text("OptionB");
-
-    state == MenuState::OptionC ? display.setTextColor(SSD1306_BLACK, SSD1306_WHITE) : display.setTextColor(SSD1306_WHITE);
-    Gui::Text("OptionC");
-    
-    state == MenuState::OptionD ? display.setTextColor(SSD1306_BLACK, SSD1306_WHITE) : display.setTextColor(SSD1306_WHITE);
-    Gui::Text("OptionD");
-    
-    display.drawLine(
-      1 + FONT_WIDTH * 7 + 1, 1 + FONT_HEIGHT * 0,
-      1 + FONT_WIDTH * 7 + 1, display.height() - 1, SSD1306_WHITE);
+    // Smooth scroll
+    static float progress = float(state) / float(MenuState::End - 1);
+    float real_progress = float(state) / float(MenuState::End - 1);
+    progress = lerp(progress, real_progress, 0.2);
+    int scrollY = -int(progress * float(size_y * (MenuState::End - 1) + 2 * (MenuState::End - 2)))
+     + SCREEN_HEIGHT / 4;
 
     display.setTextColor(SSD1306_WHITE);
-    Gui::SetCursor(1 + FONT_WIDTH * 7 + 1 + 1 + 1, 1 + 1);
 
-    switch (state) {
-    case MenuState::Back:
-      Gui::TextWrapped("Ready to leave?",
-        display.width() - (1 + FONT_WIDTH * 7 + 1) - 1);
-      break;
-    case MenuState::OptionA:
-      Gui::TextWrapped("This is the first option you see in this menu",
-        display.width() - (1 + FONT_WIDTH * 7 + 1) - 1);
-      break;
-    case MenuState::OptionB:
-      Gui::TextWrapped("Some really long information about option B",
-        display.width() - (1 + FONT_WIDTH * 7 + 1) - 1);
-      break;
-    case MenuState::OptionC:
-      Gui::TextWrapped("What are you looking for?",
-        display.width() - (1 + FONT_WIDTH * 7 + 1) - 1);
-      break;
-    case MenuState::OptionD:
-      Gui::TextWrapped("This is the end, for now",
-        display.width() - (1 + FONT_WIDTH * 7 + 1) - 1);
-      break;
+    // Render items
+    for (MenuState s = 0; s < MenuState::End; s = s + 1) {
+      display.drawBitmap(anchor_x + 4, anchor_y + 5 + scrollY, icons[s], 8, 8, WHITE);
+      Gui::SetCursor(anchor_x + 4 + 8 + 2, anchor_y + 5 + scrollY);
+      
+      if (s == state) {
+        display.drawRoundRect(
+          anchor_x,
+          anchor_y + scrollY,
+          size_x,
+          size_y,
+          3,
+          SSD1306_WHITE
+        );
+      }
+
+      Gui::Text(labels[s]);
+      anchor_y += size_y + 2;
     }
+
+    // Render Scrollbar
+    const int scrollbar_x = SCREEN_WIDTH - 2;
+    for (int i = 0; i < SCREEN_HEIGHT; i += 2) {
+      display.drawPixel(scrollbar_x, i, SSD1306_WHITE);
+    }
+    int scrollbar_y = int(lerp(float(4), float(SCREEN_HEIGHT - 4), progress));
+    display.fillRect(
+      scrollbar_x - 1,
+      scrollbar_y - 4,
+      3,
+      8,
+      SSD1306_WHITE
+    );
+
+
 
     if (option_a) {
       constexpr int dialog_width = 60;
@@ -266,10 +288,6 @@ public:
 };
 
 Menu menu = Menu();
-
-float lerp(float a, float b, float t) {
-  return b + (a - b) * t;
-}
 
 void render_logopage() {
   float t = float(millis()) / 250.;
