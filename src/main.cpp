@@ -82,7 +82,6 @@ namespace Bitmap {
 namespace Ui {
   float progress = 0.0f;
 
-  // Such a common function, why not built-in?
   float Lerp(float a, float b, float t) {
     return a + (b - a) * t;
   }
@@ -115,7 +114,7 @@ namespace Ui {
     constexpr int ANCHOR_X = 4;
     int anchor_y = 4;
     constexpr int ITEM_SPACING = 2;
-    constexpr int ICON_TEXT_GAP = 2; // This just cannot be 3, I... don't know why
+    constexpr int ICON_TEXT_GAP = 3; // This just cannot be 3, I... don't know why
     constexpr int PADDING_X = 4;
     constexpr int PADDING_Y = 5;
     constexpr int SIZE_X = 120;
@@ -392,17 +391,12 @@ class App {
 
   }
   void setup() {
-
     // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
     if(!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
       Serial.println(F("SSD1306 allocation failed"));
       for(;;); // Don't proceed, loop forever
     }
 
-    // Show Adafruit default logo
-    display.display();
-    delay(1000);
-    
     display.setTextWrap(false);
     display.setTextSize(1); // Draw 2X-scale text
     display.setTextColor(SSD1306_WHITE);
