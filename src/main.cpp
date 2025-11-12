@@ -76,6 +76,16 @@ namespace Bitmap {
     B01000010, 
     B00111100,
   };
+  static const unsigned char PROGMEM CHECK[] = {
+    B00000000, 
+    B00000001, 
+    B00000010, 
+    B00000100, 
+    B10001000, 
+    B01010000, 
+    B00100000, 
+    B00000000,
+  };
 }
 
 // NotGui
@@ -158,6 +168,7 @@ enum AppState {
   Menu,
   MassSetup,
   HeightSetup,
+  NumberSelect,
   Settings,
   Credits,
 };
@@ -318,6 +329,7 @@ namespace Ui {
         next_state = AppState::Menu;
         break;
       case MassOption::Custom:
+        next_state = AppState::NumberSelect;
         break;
       }
     }
@@ -337,6 +349,144 @@ namespace Ui {
       Ui::Menuuu(MassOption::Current, MassOption::End, (int*)&option, labels, ICONS);
     }
   };
+  class NumberSelect {
+    public:
+    enum Option {
+      Number = 0,
+      Back,
+      Confirm,
+      End
+    };
+
+    Option option = Option::Back;
+    float scroll_x = 0.0f;
+    int cursor = 0;
+    int number = 11101; // 111.01 g
+    int array[6] = {0}; // 9999.99 g MAX / stored in reverse order
+    int digits = 0;
+    char unit = 'g';
+    
+    // _ _ _ _ 1 . 1 0 mg n y
+
+    void enter() {
+      digits = get_digits(number);
+      for (int i = 0; i <= digits; i++) {
+        array[i] = get_digit_at(number, i);
+      }
+    }
+    static inline int get_digits(int n) {
+      return int(log10(n));
+    }
+    static inline int get_digit_at(int n, int index) {
+      return ((n % int(pow(10, index + 1))) - (n % int(pow(10, index)))) / int(pow(10, index));
+    }
+    void up() {
+      if (option == Option::Number) {
+        if (cursor - 1 < 0) {
+          option = Option::Confirm;
+        } else {
+          cursor -= 1;
+        }
+        return;
+      }
+      if (option == Option::Confirm)
+        cursor = digits;
+      option = (option - 1 == -1) ? Option::End - 1 : (option - 1);
+    }
+    void down() {
+      if (option == Option::Number) {
+        if (cursor == digits) {
+          option = Option::Back;
+        } else {
+          cursor += 1;
+        }
+        return;
+      }
+      if (option == Option::Back)
+        cursor = 0;
+      option = (option + 1 == Option::End) ? 0 : (option + 1);
+    }
+    void press() {
+      switch (option) {
+      case Option::Confirm:
+        break;
+      }
+    }
+    void render() {
+      constexpr int ANCHOR_Y = SCREEN_HEIGHT / 2 - FONT_HEIGHT / 2;
+      constexpr int ANCHOR_X_OFFSET = 0;
+      constexpr int SELECT_ANCHOR_X = SCREEN_WIDTH / 2 - FONT_WIDTH / 2;
+      constexpr int SELECT_ANCHOR_Y = ANCHOR_Y - 1;
+      constexpr int NUMBER_SPACING = 3;
+      constexpr int ITEM_SPACING = 5;
+
+      //int scroll_x = option * (FONT_WIDTH * 2);
+      int anchor_x = ANCHOR_X_OFFSET;
+      float real_scroll_x = 0.0f;
+
+      // Render Back Icon
+      if (option == Option::Back)
+        real_scroll_x = float(anchor_x + 4);
+      display.drawBitmap(
+        anchor_x + scroll_x,
+        ANCHOR_Y,
+        Bitmap::BACKARROW,
+        8, 8,
+        SSD1306_WHITE
+      );
+      anchor_x += 8 + ITEM_SPACING;
+      
+      // Render numbers
+      for (int i = 0; i <= digits; i++) {
+        if (option == Option::Number && cursor == (digits - i))
+          real_scroll_x = float(anchor_x + 2);
+        display.setCursor(anchor_x + scroll_x, ANCHOR_Y);
+        display.write(int(array[i]) + 48);
+        anchor_x += FONT_WIDTH + NUMBER_SPACING;
+      }
+
+      // Render unit
+      display.setCursor(anchor_x + scroll_x, ANCHOR_Y);
+      display.write(unit);
+      anchor_x += FONT_WIDTH + ITEM_SPACING;
+
+      // Debug
+      //display.setCursor(60, ANCHOR_Y + 20);
+      //display.print(cursor);
+
+      // Render Confirm Icon
+      if (option == Option::Confirm)
+        real_scroll_x = float(anchor_x + 4);
+      display.drawBitmap(
+        anchor_x + scroll_x,
+        ANCHOR_Y,
+        Bitmap::CHECK,
+        8, 8,
+        SSD1306_WHITE
+      );
+      
+
+      // Smooth scroll
+      scroll_x = Ui::Lerp(scroll_x, -real_scroll_x + SCREEN_WIDTH / 2, 0.2);
+
+      display.drawRect(
+        SELECT_ANCHOR_X - 1 - 2,
+        SELECT_ANCHOR_Y - 1,
+        10 + 1,
+        FONT_HEIGHT + 2,
+        SSD1306_INVERSE
+      );
+
+      display.setCursor(SELECT_ANCHOR_X, SELECT_ANCHOR_Y - FONT_HEIGHT);
+      display.write('^');
+      display.setCursor(SELECT_ANCHOR_X, SELECT_ANCHOR_Y + FONT_HEIGHT + 1);
+      display.write('v');
+      display.drawPixel(SELECT_ANCHOR_X + 0, SELECT_ANCHOR_Y + FONT_HEIGHT + 3, SSD1306_BLACK);
+      display.drawPixel(SELECT_ANCHOR_X + 4, SELECT_ANCHOR_Y + FONT_HEIGHT + 3, SSD1306_BLACK);
+      display.drawPixel(SELECT_ANCHOR_X + 0, SELECT_ANCHOR_Y + FONT_HEIGHT + 4, SSD1306_BLACK);
+      display.drawPixel(SELECT_ANCHOR_X + 4, SELECT_ANCHOR_Y + FONT_HEIGHT + 4, SSD1306_BLACK);
+    }
+  };
 };
 
 class App {
@@ -344,6 +494,7 @@ class App {
   Ui::Menu menu = Ui::Menu();
   Ui::Dashboard dashboard = Ui::Dashboard();
   Ui::MassSetup masssetup = Ui::MassSetup();
+  Ui::NumberSelect numberselect = Ui::NumberSelect();
 
   public:
   void up() {
@@ -354,6 +505,9 @@ class App {
     case AppState::MassSetup:
       masssetup.up();
       break;
+    case AppState::NumberSelect:
+      numberselect.up();
+      break;
     }
   }
   void down() {
@@ -363,6 +517,9 @@ class App {
       break;
     case AppState::MassSetup:
       masssetup.down();
+      break;
+    case AppState::NumberSelect:
+      numberselect.down();
       break;
     }
   }
@@ -377,6 +534,9 @@ class App {
     case AppState::Dashboard:
       next_state = AppState::Menu;
       break;
+    case AppState::NumberSelect:
+      numberselect.press();
+      break;
     }
   }
   void enter(AppState prev_state) {
@@ -384,6 +544,9 @@ class App {
     case AppState::Menu:
       break;
     case AppState::MassSetup:
+      break;
+    case AppState::NumberSelect:
+      numberselect.enter();
       break;
     }
   }
@@ -423,6 +586,9 @@ class App {
       break;
     case AppState::MassSetup:
       masssetup.render();
+      break;
+    case AppState::NumberSelect:
+      numberselect.render();
     }
 
     display.display();
