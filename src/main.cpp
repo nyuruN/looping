@@ -365,10 +365,12 @@ namespace Ui {
     int array[6] = {0}; // 9999.99 g MAX / stored in reverse order
     int digits = 0;
     char unit = 'g';
+    int prev_menu;
     
     // _ _ _ _ 1 . 1 0 mg n y
 
-    void enter() {
+    void enter(int prev) {
+      prev_menu = prev;
       digits = get_digits(number);
       for (int i = 0; i <= digits; i++) {
         array[i] = get_digit_at(number, i);
@@ -408,7 +410,10 @@ namespace Ui {
     }
     void press() {
       switch (option) {
+      case Option::Back:
       case Option::Confirm:
+        next_state = prev_menu;
+        progress = 1.5f;
         break;
       }
     }
@@ -464,10 +469,6 @@ namespace Ui {
         8, 8,
         SSD1306_WHITE
       );
-      
-
-      // Smooth scroll
-      scroll_x = Ui::Lerp(scroll_x, -real_scroll_x + SCREEN_WIDTH / 2, 0.2);
 
       display.drawRect(
         SELECT_ANCHOR_X - 1 - 2,
@@ -485,6 +486,9 @@ namespace Ui {
       display.drawPixel(SELECT_ANCHOR_X + 4, SELECT_ANCHOR_Y + FONT_HEIGHT + 3, SSD1306_BLACK);
       display.drawPixel(SELECT_ANCHOR_X + 0, SELECT_ANCHOR_Y + FONT_HEIGHT + 4, SSD1306_BLACK);
       display.drawPixel(SELECT_ANCHOR_X + 4, SELECT_ANCHOR_Y + FONT_HEIGHT + 4, SSD1306_BLACK);
+
+      // Smooth scroll
+      scroll_x = Ui::Lerp(scroll_x, -real_scroll_x + SCREEN_WIDTH / 2, 0.2);
     }
   };
 };
@@ -546,7 +550,7 @@ class App {
     case AppState::MassSetup:
       break;
     case AppState::NumberSelect:
-      numberselect.enter();
+      numberselect.enter(prev_state);
       break;
     }
   }
