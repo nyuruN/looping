@@ -410,8 +410,8 @@ namespace Ui {
     }
     void press() {
       switch (option) {
-      case Option::Back:
       case Option::Confirm:
+      case Option::Back:
         next_state = prev_menu;
         progress = 1.5f;
         break;
@@ -424,6 +424,7 @@ namespace Ui {
       constexpr int SELECT_ANCHOR_Y = ANCHOR_Y - 1;
       constexpr int NUMBER_SPACING = 3;
       constexpr int ITEM_SPACING = 5;
+      const int decimal_point = 2;
 
       //int scroll_x = option * (FONT_WIDTH * 2);
       int anchor_x = ANCHOR_X_OFFSET;
@@ -448,6 +449,12 @@ namespace Ui {
         display.setCursor(anchor_x + scroll_x, ANCHOR_Y);
         display.write(int(array[i]) + 48);
         anchor_x += FONT_WIDTH + NUMBER_SPACING;
+
+        if ((digits - i) == decimal_point) {
+          display.setCursor(anchor_x + scroll_x -2, ANCHOR_Y);
+          display.write('.');
+          anchor_x += FONT_WIDTH + NUMBER_SPACING - 2;
+        }
       }
 
       // Render unit
@@ -478,14 +485,16 @@ namespace Ui {
         SSD1306_INVERSE
       );
 
-      display.setCursor(SELECT_ANCHOR_X, SELECT_ANCHOR_Y - FONT_HEIGHT);
-      display.write('^');
-      display.setCursor(SELECT_ANCHOR_X, SELECT_ANCHOR_Y + FONT_HEIGHT + 1);
-      display.write('v');
-      display.drawPixel(SELECT_ANCHOR_X + 0, SELECT_ANCHOR_Y + FONT_HEIGHT + 3, SSD1306_BLACK);
-      display.drawPixel(SELECT_ANCHOR_X + 4, SELECT_ANCHOR_Y + FONT_HEIGHT + 3, SSD1306_BLACK);
-      display.drawPixel(SELECT_ANCHOR_X + 0, SELECT_ANCHOR_Y + FONT_HEIGHT + 4, SSD1306_BLACK);
-      display.drawPixel(SELECT_ANCHOR_X + 4, SELECT_ANCHOR_Y + FONT_HEIGHT + 4, SSD1306_BLACK);
+      if (option == Option::Number) {
+        display.setCursor(SELECT_ANCHOR_X, SELECT_ANCHOR_Y - FONT_HEIGHT);
+        display.write('^');
+        display.setCursor(SELECT_ANCHOR_X, SELECT_ANCHOR_Y + FONT_HEIGHT + 1);
+        display.write('v');
+        display.drawPixel(SELECT_ANCHOR_X + 0, SELECT_ANCHOR_Y + FONT_HEIGHT + 3, SSD1306_BLACK);
+        display.drawPixel(SELECT_ANCHOR_X + 4, SELECT_ANCHOR_Y + FONT_HEIGHT + 3, SSD1306_BLACK);
+        display.drawPixel(SELECT_ANCHOR_X + 0, SELECT_ANCHOR_Y + FONT_HEIGHT + 4, SSD1306_BLACK);
+        display.drawPixel(SELECT_ANCHOR_X + 4, SELECT_ANCHOR_Y + FONT_HEIGHT + 4, SSD1306_BLACK);
+      }
 
       // Smooth scroll
       scroll_x = Ui::Lerp(scroll_x, -real_scroll_x + SCREEN_WIDTH / 2, 0.2);
