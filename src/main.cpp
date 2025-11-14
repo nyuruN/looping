@@ -363,15 +363,17 @@ namespace Ui {
     int cursor = 0;
     int number = 11101; // 111.01 g
     int array[6] = {0}; // 9999.99 g MAX / stored in reverse order
-    int digits = 0;
+    int digits = 5;
     char unit = 'g';
     int prev_menu;
+    bool is_editing = false;
     
     // _ _ _ _ 1 . 1 0 mg n y
 
     void enter(int prev) {
       prev_menu = prev;
-      digits = get_digits(number);
+      //digits = get_digits(number);
+      cursor = digits;
       for (int i = 0; i <= digits; i++) {
         array[i] = get_digit_at(number, i);
       }
@@ -383,6 +385,10 @@ namespace Ui {
       return ((n % int(pow(10, index + 1))) - (n % int(pow(10, index)))) / int(pow(10, index));
     }
     void up() {
+      if (is_editing) {
+        array[digits - cursor] = (array[digits - cursor] == 0) ? 9 : array[digits - cursor] - 1;
+        return;
+      }
       if (option == Option::Number) {
         if (cursor - 1 < 0) {
           option = Option::Confirm;
@@ -396,6 +402,10 @@ namespace Ui {
       option = (option - 1 == -1) ? Option::End - 1 : (option - 1);
     }
     void down() {
+      if (is_editing) {
+        array[digits - cursor] = (array[digits - cursor] == 9) ? 0 : array[digits - cursor] + 1;
+        return;
+      }
       if (option == Option::Number) {
         if (cursor == digits) {
           option = Option::Back;
@@ -415,24 +425,25 @@ namespace Ui {
         next_state = prev_menu;
         progress = 1.5f;
         break;
+      case Option::Number:
+        is_editing = !is_editing;
       }
     }
     void render() {
       constexpr int ANCHOR_Y = SCREEN_HEIGHT / 2 - FONT_HEIGHT / 2;
-      constexpr int ANCHOR_X_OFFSET = 0;
       constexpr int SELECT_ANCHOR_X = SCREEN_WIDTH / 2 - FONT_WIDTH / 2;
       constexpr int SELECT_ANCHOR_Y = ANCHOR_Y - 1;
       constexpr int NUMBER_SPACING = 3;
-      constexpr int ITEM_SPACING = 5;
+      constexpr int ITEM_SPACING = 6;
       const int decimal_point = 2;
 
       //int scroll_x = option * (FONT_WIDTH * 2);
-      int anchor_x = ANCHOR_X_OFFSET;
+      int anchor_x = 0.0f;
       float real_scroll_x = 0.0f;
 
       // Render Back Icon
       if (option == Option::Back)
-        real_scroll_x = float(anchor_x + 4);
+        real_scroll_x = float(anchor_x + 3);
       display.drawBitmap(
         anchor_x + scroll_x,
         ANCHOR_Y,
@@ -445,8 +456,8 @@ namespace Ui {
       // Render numbers
       for (int i = 0; i <= digits; i++) {
         if (option == Option::Number && cursor == (digits - i))
-          real_scroll_x = float(anchor_x + 2);
-        display.setCursor(anchor_x + scroll_x, ANCHOR_Y);
+          real_scroll_x = float(anchor_x + 3);
+        display.setCursor(anchor_x + round(scroll_x), ANCHOR_Y);
         display.write(int(array[i]) + 48);
         anchor_x += FONT_WIDTH + NUMBER_SPACING;
 
@@ -464,7 +475,7 @@ namespace Ui {
 
       // Debug
       //display.setCursor(60, ANCHOR_Y + 20);
-      //display.print(cursor);
+      //display.print(log);
 
       // Render Confirm Icon
       if (option == Option::Confirm)
@@ -477,13 +488,24 @@ namespace Ui {
         SSD1306_WHITE
       );
 
-      display.drawRect(
-        SELECT_ANCHOR_X - 1 - 2,
-        SELECT_ANCHOR_Y - 1,
-        10 + 1,
-        FONT_HEIGHT + 2,
-        SSD1306_INVERSE
-      );
+      if (is_editing) {
+        display.fillRoundRect(
+          SELECT_ANCHOR_X - 1 - 2,
+          SELECT_ANCHOR_Y - 1,
+          10 + 1,
+          FONT_HEIGHT + 2,
+          1,
+          SSD1306_INVERSE
+        );
+      } else {
+        display.drawRect(
+          SELECT_ANCHOR_X - 1 - 2,
+          SELECT_ANCHOR_Y - 1,
+          10 + 1,
+          FONT_HEIGHT + 2,
+          SSD1306_INVERSE
+        );
+      }
 
       if (option == Option::Number) {
         display.setCursor(SELECT_ANCHOR_X, SELECT_ANCHOR_Y - FONT_HEIGHT);
