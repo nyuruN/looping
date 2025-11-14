@@ -744,6 +744,45 @@ class App {
 };
 App app = App();
 
+namespace LightBarrier {
+  const int primLB = 8;
+  const int secLB = A2;
+
+  bool measuring = false;
+
+  inline void setup() {
+    // Setup pin change interrupts on D8 and A2.
+    PCICR |= (1 << PCIE1) | (1 << PCIE0);
+    PCMSK0 |= (1 << PCINT0);
+    PCMSK1 |= (1 << PCINT10);
+
+    // Setup Timer1 (16 bit) with prescaler 64 in free-running mode.
+    TCCR1A = B00000000;
+    TCCR1B = B00000011;
+    TCCR1C = B00000000;
+    TIMSK1 |= (1 << TOIE1);
+    TCNT1 = 0;
+  }
+
+  ISR(PCINT0_vect) {
+    TCNT1 = 0;
+    measuring = true;
+  }
+
+  ISR(PCINT1_vect) {
+    if (measuring) {
+      Serial.print("Time: ");
+      Serial.print(TCNT1 * 64.0 / 16000000.0);
+      Serial.println("s");
+      measuring = false;
+    }
+  }
+
+  ISR(TIMER1_OVF_vect) {
+    measuring = false; // Abort measurement if timer1 overflows.
+  }
+}
+
 namespace RotaryEncoder {
   // Arduino and KY-040 module
   int encoderBtn = 3; // SW pin
@@ -776,6 +815,7 @@ void setup() {
   app.setup();
 
   RotaryEncoder::setup();
+  LightBarrier::setup();
 }
 void loop() {
   // TEMPORARY SERIAL CONTROL
