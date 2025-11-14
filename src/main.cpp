@@ -704,7 +704,6 @@ namespace RotaryEncoder {
   volatile boolean bool_CW;
 
   void button() {
-    Serial.println("button prest");
     app.press();
   }
   void tick() {
@@ -725,16 +724,12 @@ namespace RotaryEncoder {
           app.up();
         }
         even = !even;
-        Serial.print("Clockwise | ");
       } else {
         if (!even) {
           app.down();
         }
         even = !even;
-        Serial.print("Counter-Clockwise | ");
       }
-      Serial.print(count);
-      Serial.println(" | ");
     }
     encoderPinA_prev = encoderPinA_value;
     // check if button is pressed (pin SW)
