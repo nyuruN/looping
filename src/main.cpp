@@ -154,7 +154,7 @@ namespace Ui {
       SSD1306_WHITE
     );
   }
-  void Menuuu(
+  void MenuRender(
     int option_first,
     int option_end, // This is not a value! This is last option + 1
     int* selected,
@@ -264,24 +264,13 @@ namespace Ui {
       case MenuState::MassSetup:
         next_state = AppState::MassSetup;
         break;
+      case MenuState::Settings:
+        next_state = AppState::Settings;
+        break;
       }
     }
     void render() {
-      static const unsigned char * icons[ITEMS] = {
-        Bitmap::BACKARROW,
-        Bitmap::BACKARROW,
-        Bitmap::BACKARROW,
-        Bitmap::BACKARROW,
-        Bitmap::BACKARROW
-      };
-      static const char * labels[ITEMS] = {
-        "Back",
-        "Mass",
-        "Height",
-        "Settings",
-        "Credits",
-      };
-      Ui::Menuuu(
+      Ui::MenuRender(
         MenuState::Back,
         MenuState::End,
         (int*)&state,
@@ -429,7 +418,7 @@ namespace Ui {
       constexpr int mass = 0;
       sprintf(current_buf, "Current%9.1dg", mass);
 
-      Ui::Menuuu(MassOption::Current, MassOption::End, (int*)&option, labels, ICONS);
+      Ui::MenuRender(MassOption::Current, MassOption::End, (int*)&option, labels, ICONS);
     }
   };
   class NumberSelect {
@@ -629,6 +618,54 @@ namespace Ui {
       display.setTextSize(1);
     }
   };
+  class Settings {
+    public:
+    enum MenuState {
+      Back = 0,
+      MassSetup,
+      End,
+    };
+    static constexpr int ITEMS = MenuState::End;
+    // I have no words...
+    static inline constexpr const unsigned char * ICONS[ITEMS] = {
+      Bitmap::BACKARROW,
+      Bitmap::BACKARROW
+    };
+    static inline constexpr char * LABELS[ITEMS] = {
+      "Back",
+      "Mass",
+    };
+
+    private:
+    MenuState state = MenuState::MassSetup;
+
+    public:
+    void up() {
+      state = (state - 1 == -1) ? MenuState::End - 1 : (state - 1);
+    }
+    void down() {
+      state = (state + 1 == MenuState::End) ? 0 : (state + 1);
+    }
+    void press() {
+      switch (state) {
+      case MenuState::Back:
+        next_state = AppState::Menu;
+        break;
+      case MenuState::MassSetup:
+        next_state = AppState::MassSetup;
+        break;
+      }
+    }
+    void render() {
+      Ui::MenuRender(
+        MenuState::Back,
+        MenuState::End,
+        (int*)&state,
+        LABELS,
+        ICONS
+      );
+    }
+  };
 };
 
 class App {
@@ -637,6 +674,7 @@ class App {
   Ui::Dashboard dashboard = Ui::Dashboard();
   Ui::MassSetup masssetup = Ui::MassSetup();
   Ui::NumberSelect numberselect = Ui::NumberSelect();
+  Ui::Settings settings = Ui::Settings();
 
   public:
   void up() {
@@ -652,6 +690,9 @@ class App {
       break;
     case AppState::Dashboard:
       dashboard.up();
+      break;
+    case AppState::Settings:
+      settings.up();
       break;
     }
   }
@@ -669,6 +710,9 @@ class App {
     case AppState::Dashboard:
       dashboard.down();
       break;
+    case AppState::Settings:
+      settings.down();
+      break;
     }
   }
   void press() {
@@ -684,6 +728,9 @@ class App {
       break;
     case AppState::NumberSelect:
       numberselect.press();
+      break;
+    case AppState::Settings:
+      settings.press();
       break;
     }
   }
@@ -737,6 +784,10 @@ class App {
       break;
     case AppState::NumberSelect:
       numberselect.render();
+      break;
+    case AppState::Settings:
+      settings.render();
+      break;
     }
 
     display.display();
