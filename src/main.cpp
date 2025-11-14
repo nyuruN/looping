@@ -48,6 +48,24 @@ namespace Bitmap {
     B00100000, 
     B00000000,
   };
+  static const unsigned char PROGMEM BACKARROW16[] = {
+    B00000000, B00000000, 
+    B00000000, B00000000, 
+    B00000000, B00000000, 
+    B00000000, B00000000, 
+    B00001000, B00001100, 
+    B00011000, B00001100, 
+    B00111000, B00001100, 
+    B01111000, B00001100, 
+    B11111111, B11111100, 
+    B11111111, B11111100, 
+    B01111000, B00000000, 
+    B00111000, B00000000, 
+    B00011000, B00000000, 
+    B00001000, B00000000, 
+    B00000000, B00000000, 
+    B00000000, B00000000,
+  };
   static const unsigned char PROGMEM BALL[] = {
     B00111100, 
     B01000010, 
@@ -58,15 +76,53 @@ namespace Bitmap {
     B01000010, 
     B00111100,
   };
-  static const unsigned char PROGMEM CHECK[] = {
-    B00000000, 
-    B00000001, 
-    B00000010, 
-    B00000100, 
-    B10001000, 
-    B01010000, 
-    B00100000, 
-    B00000000,
+  static const unsigned char PROGMEM CHECK16[] = {
+    B00000000, B00000000, 
+    B00000000, B00000000, 
+    B00000000, B00000000, 
+    B00000000, B00000000, 
+    B00000000, B00000111, 
+    B00000000, B00001110, 
+    B00000000, B00011100, 
+    B00000000, B00111000, 
+    B00000000, B01110000, 
+    B01110000, B11100000, 
+    B00111001, B11000000, 
+    B00011111, B10000000, 
+    B00001111, B00000000, 
+    B00000110, B00000000, 
+    B00000000, B00000000,
+    B00000000, B00000000, 
+  };
+  static const unsigned char PROGMEM UP16X8[] = {
+    B00000001, B10000000, 
+    B00000011, B11000000, 
+    B00000111, B11100000, 
+    B00001110, B01110000, 
+    B00011100, B00111000, 
+    B00111000, B00011100, 
+    B00000000, B00000000, 
+    B00000000, B00000000, 
+  };
+/*   static const unsigned char PROGMEM UP16X8[] = {
+    B00000001, B10000000, 
+    B00000001, B10000000, 
+    B00000110, B01100000, 
+    B00000110, B01100000, 
+    B00011000, B00011000, 
+    B00011000, B00011000, 
+    B00000000, B00000000, 
+    B00000000, B00000000, 
+  }; */
+  static const unsigned char PROGMEM DOWN16X8[] = {
+    B00000000, B00000000, 
+    B00000000, B00000000, 
+    B00111000, B00011100, 
+    B00011100, B00111000, 
+    B00001110, B01110000, 
+    B00000111, B11100000, 
+    B00000011, B11000000, 
+    B00000001, B10000000, 
   };
 }
 
@@ -349,6 +405,8 @@ namespace Ui {
     char unit = 'g';
     int prev_menu;
     bool is_editing = false;
+    u32 offset_up_anim_start = 0;
+    u32 offset_down_anim_start = 0;
     
     // _ _ _ _ 1 . 1 0 mg n y
 
@@ -369,6 +427,7 @@ namespace Ui {
     void up() {
       if (is_editing) {
         array[digits - cursor] = (array[digits - cursor] == 0) ? 9 : array[digits - cursor] - 1;
+        offset_down_anim_start = millis();
         return;
       }
       if (option == Option::Number) {
@@ -386,6 +445,7 @@ namespace Ui {
     void down() {
       if (is_editing) {
         array[digits - cursor] = (array[digits - cursor] == 9) ? 0 : array[digits - cursor] + 1;
+        offset_up_anim_start = millis();
         return;
       }
       if (option == Option::Number) {
@@ -411,29 +471,41 @@ namespace Ui {
         is_editing = !is_editing;
       }
     }
+    float offset_anim(float t) {
+      // Quatratic function (soft falloff, but we already lerp between values)
+      //return 10. * max(0., 1. - (8.0 * t - 1.0) * (8.0 * t - 1.0));
+      // Sign function
+      constexpr float amplitude = 8.;
+      constexpr float duration = 0.2;
+      return amplitude * max(0., -(t - duration)/abs(t - duration));
+    }
     void render() {
-      constexpr int ANCHOR_Y = SCREEN_HEIGHT / 2 - FONT_HEIGHT / 2;
-      constexpr int SELECT_ANCHOR_X = SCREEN_WIDTH / 2 - FONT_WIDTH / 2;
-      constexpr int SELECT_ANCHOR_Y = ANCHOR_Y - 1;
-      constexpr int NUMBER_SPACING = 3;
-      constexpr int ITEM_SPACING = 6;
+      constexpr int NS_FONT_HEIGHT = FONT_HEIGHT * 2;
+      constexpr int NS_FONT_WIDTH = FONT_WIDTH * 2;
+      constexpr int ANCHOR_Y = SCREEN_HEIGHT / 2 - NS_FONT_HEIGHT / 2;
+      constexpr int SELECT_ANCHOR_X = SCREEN_WIDTH / 2 - NS_FONT_WIDTH / 2;
+      constexpr int SELECT_ANCHOR_Y = SCREEN_HEIGHT / 2;
+      constexpr int NUMBER_SPACING = 1;
+      constexpr int ITEM_SPACING = 7;
       const int decimal_point = 2;
 
-      //int scroll_x = option * (FONT_WIDTH * 2);
+      //int scroll_x = option * (NS_FONT_WIDTH * 2);
       int anchor_x = 0.0f;
       float real_scroll_x = 0.0f;
 
+      display.setTextSize(2);
+
       // Render Back Icon
       if (option == Option::Back)
-        real_scroll_x = float(anchor_x + 3);
+        real_scroll_x = float(anchor_x + 5);
       display.drawBitmap(
         anchor_x + scroll_x,
         ANCHOR_Y,
-        Bitmap::BACKARROW,
-        8, 8,
+        Bitmap::BACKARROW16,
+        16, 16,
         SSD1306_WHITE
       );
-      anchor_x += 8 + ITEM_SPACING;
+      anchor_x += 16 + ITEM_SPACING;
       
       // Render numbers
       for (int i = 0; i <= digits; i++) {
@@ -441,19 +513,19 @@ namespace Ui {
           real_scroll_x = float(anchor_x + 3);
         display.setCursor(anchor_x + round(scroll_x), ANCHOR_Y);
         display.write(int(array[i]) + 48);
-        anchor_x += FONT_WIDTH + NUMBER_SPACING;
+        anchor_x += NS_FONT_WIDTH + NUMBER_SPACING;
 
         if ((digits - i) == decimal_point) {
-          display.setCursor(anchor_x + scroll_x -2, ANCHOR_Y);
+          display.setCursor(anchor_x + scroll_x - 3, ANCHOR_Y);
           display.write('.');
-          anchor_x += FONT_WIDTH + NUMBER_SPACING - 2;
+          anchor_x += NS_FONT_WIDTH + NUMBER_SPACING - 6;
         }
       }
 
       // Render unit
       display.setCursor(anchor_x + scroll_x, ANCHOR_Y);
       display.write(unit);
-      anchor_x += FONT_WIDTH + ITEM_SPACING;
+      anchor_x += NS_FONT_WIDTH + ITEM_SPACING;
 
       // Debug
       //display.setCursor(60, ANCHOR_Y + 20);
@@ -461,47 +533,55 @@ namespace Ui {
 
       // Render Confirm Icon
       if (option == Option::Confirm)
-        real_scroll_x = float(anchor_x + 4);
+        real_scroll_x = float(anchor_x + 6);
       display.drawBitmap(
         anchor_x + scroll_x,
         ANCHOR_Y,
-        Bitmap::CHECK,
-        8, 8,
+        Bitmap::CHECK16,
+        16, 16,
         SSD1306_WHITE
       );
 
-      if (is_editing) {
-        display.fillRoundRect(
-          SELECT_ANCHOR_X - 1 - 2,
-          SELECT_ANCHOR_Y - 1,
-          10 + 1,
-          FONT_HEIGHT + 2,
-          1,
-          SSD1306_INVERSE
+      //if (option == Option::Number) {
+      const int inverse = is_editing ? 1 : -1;
+      //int offset = 1.0 + sin(millis() / 150.) * 2;
+      static int offset_up = 0;
+      static int offset_down = 0;
+      const float wave = (1.0 + sin(millis() / 150.)) * 2.0;
+      offset_up = Lerp(offset_up, offset_anim((millis() - offset_up_anim_start) / 1000.), 0.5);
+      offset_down = Lerp(offset_down, offset_anim((millis() - offset_down_anim_start) / 1000.), 0.5);
+
+      display.drawBitmap(
+        SELECT_ANCHOR_X,
+        SELECT_ANCHOR_Y - 4 - (NS_FONT_HEIGHT + offset_up + (is_editing ? 0 : wave)) * inverse,
+        Bitmap::UP16X8,
+        16, 8,
+        SSD1306_WHITE
+      );
+      if (is_editing)
+        display.drawBitmap(
+          SELECT_ANCHOR_X,
+          SELECT_ANCHOR_Y - 4 + (NS_FONT_HEIGHT + offset_down) * inverse,
+          Bitmap::DOWN16X8,
+          16, 8,
+          SSD1306_WHITE
         );
-      } else {
+      //}
+      
+/*       if (option != Option::Number) {
         display.drawRect(
           SELECT_ANCHOR_X - 1 - 2,
-          SELECT_ANCHOR_Y - 1,
-          10 + 1,
-          FONT_HEIGHT + 2,
+          SELECT_ANCHOR_Y - 8 - 1,
+          20 + 1,
+          NS_FONT_HEIGHT + 2,
           SSD1306_INVERSE
         );
-      }
-
-      if (option == Option::Number) {
-        display.setCursor(SELECT_ANCHOR_X, SELECT_ANCHOR_Y - FONT_HEIGHT);
-        display.write('^');
-        display.setCursor(SELECT_ANCHOR_X, SELECT_ANCHOR_Y + FONT_HEIGHT + 1);
-        display.write('v');
-        display.drawPixel(SELECT_ANCHOR_X + 0, SELECT_ANCHOR_Y + FONT_HEIGHT + 3, SSD1306_BLACK);
-        display.drawPixel(SELECT_ANCHOR_X + 4, SELECT_ANCHOR_Y + FONT_HEIGHT + 3, SSD1306_BLACK);
-        display.drawPixel(SELECT_ANCHOR_X + 0, SELECT_ANCHOR_Y + FONT_HEIGHT + 4, SSD1306_BLACK);
-        display.drawPixel(SELECT_ANCHOR_X + 4, SELECT_ANCHOR_Y + FONT_HEIGHT + 4, SSD1306_BLACK);
-      }
+      } */
 
       // Smooth scroll
       scroll_x = Ui::Lerp(scroll_x, -real_scroll_x + SCREEN_WIDTH / 2, 0.2);
+
+      display.setTextSize(1);
     }
   };
 };
