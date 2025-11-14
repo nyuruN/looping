@@ -426,24 +426,6 @@ namespace Ui {
     }
     void up() {
       if (is_editing) {
-        array[digits - cursor] = (array[digits - cursor] == 0) ? 9 : array[digits - cursor] - 1;
-        offset_down_anim_start = millis();
-        return;
-      }
-      if (option == Option::Number) {
-        if (cursor - 1 < 0) {
-          option = Option::Confirm;
-        } else {
-          cursor -= 1;
-        }
-        return;
-      }
-      if (option == Option::Confirm)
-        cursor = digits;
-      option = (option - 1 == -1) ? Option::End - 1 : (option - 1);
-    }
-    void down() {
-      if (is_editing) {
         array[digits - cursor] = (array[digits - cursor] == 9) ? 0 : array[digits - cursor] + 1;
         offset_up_anim_start = millis();
         return;
@@ -459,6 +441,24 @@ namespace Ui {
       if (option == Option::Back)
         cursor = 0;
       option = (option + 1 == Option::End) ? 0 : (option + 1);
+    }
+    void down() {
+      if (is_editing) {
+        array[digits - cursor] = (array[digits - cursor] == 0) ? 9 : array[digits - cursor] - 1;
+        offset_down_anim_start = millis();
+        return;
+      }
+      if (option == Option::Number) {
+        if (cursor - 1 < 0) {
+          option = Option::Confirm;
+        } else {
+          cursor -= 1;
+        }
+        return;
+      }
+      if (option == Option::Confirm)
+        cursor = digits;
+      option = (option - 1 == -1) ? Option::End - 1 : (option - 1);
     }
     void press() {
       switch (option) {
