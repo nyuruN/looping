@@ -291,7 +291,25 @@ namespace Ui {
     }
   };
   class Dashboard {
+    static inline constexpr int MAX = 18;
+    int selection = 0;
+    float offset_prev = 0.0f;
+    float offset = 0.0f;
+    float offset_next = 0.0f;
+
     public:
+    void up() {
+      selection = (selection == MAX - 1) ? 0 : selection + 1;
+      offset_prev = offset;
+      offset = offset_next;
+      offset_next = 0.0f;
+    }
+    void down() {
+      selection = (selection == 0) ? MAX - 1 : selection - 1; 
+      offset_next = offset;
+      offset = offset_prev;
+      offset_prev = 0.0f;
+    }
     void render() {
       float t = float(millis()) / 250.;
       // Move back and forth after a sine wave
@@ -309,11 +327,36 @@ namespace Ui {
       );
 
       display.setCursor(
-        display.width() / 2 - (FONT_WIDTH * 17 / 2),
-        display.height() / 2 - (FONT_HEIGHT + 16 + 2) / 2 + 16 + 2
+        SCREEN_WIDTH / 2 - (FONT_WIDTH * 17 / 2),
+        SCREEN_HEIGHT / 2 - (FONT_HEIGHT + 16 + 2) / 2 + 16 + 2
       );
+      int anchor_x = SCREEN_WIDTH / 2 - (FONT_WIDTH * 17 / 2);
+      constexpr int ANCHOR_Y = SCREEN_HEIGHT / 2 - (FONT_HEIGHT + 16 + 2) / 2 + 16 + 2;
+      static const char buf[18] = "Imagine dying lol";
 
-      display.println("Imagine dying lol");
+
+      float real_offset = 5.;
+      offset = Lerp(offset, real_offset, 0.4);
+      offset_next = Lerp(offset_next, 0, 0.4);
+      offset_prev = Lerp(offset_prev, 0, 0.4);
+      for (int i = 0; i < MAX; i++) {
+        float current_offset = 0;
+        if (selection == i) {
+          current_offset = offset;
+        }
+        if (selection - 1 == i) {
+          current_offset = offset_prev;
+        }
+        if (selection + 1 == i) {
+          current_offset = offset_next;
+        }
+
+        display.setCursor(anchor_x, ANCHOR_Y - current_offset);
+        display.write(buf[i]);
+        anchor_x += FONT_WIDTH;
+      }
+
+      //display.println("Imagine dying lol");
     }
   }; 
   class MassSetup {
@@ -581,7 +624,7 @@ namespace Ui {
       } */
 
       // Smooth scroll
-      scroll_x = Ui::Lerp(scroll_x, -real_scroll_x + SCREEN_WIDTH / 2, 0.2);
+      scroll_x = Ui::Lerp(scroll_x, -real_scroll_x + SCREEN_WIDTH / 2, 0.4);
 
       display.setTextSize(1);
     }
@@ -607,6 +650,9 @@ class App {
     case AppState::NumberSelect:
       numberselect.up();
       break;
+    case AppState::Dashboard:
+      dashboard.up();
+      break;
     }
   }
   void down() {
@@ -619,6 +665,9 @@ class App {
       break;
     case AppState::NumberSelect:
       numberselect.down();
+      break;
+    case AppState::Dashboard:
+      dashboard.down();
       break;
     }
   }
