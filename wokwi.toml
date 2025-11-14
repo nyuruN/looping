@@ -1,5 +1,5 @@
 [wokwi]
 version = 1
-firmware = '.pio/build/uno/firmware.hex'
-elf = '.pio/build/uno/firmware.elf'
+firmware = '.pio/build/nano/firmware.hex'
+elf = '.pio/build/nano/firmware.elf'
 rfc2217ServerPort = 4000
