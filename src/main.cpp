@@ -501,7 +501,7 @@ namespace Ui {
       if (option == Option::Back)
         real_scroll_x = float(anchor_x + 5);
       display.drawBitmap(
-        anchor_x + scroll_x,
+        anchor_x + round(scroll_x),
         ANCHOR_Y,
         Bitmap::BACKARROW16,
         16, 16,
@@ -518,14 +518,14 @@ namespace Ui {
         anchor_x += NS_FONT_WIDTH + NUMBER_SPACING;
 
         if ((digits - i) == decimal_point) {
-          display.setCursor(anchor_x + scroll_x - 3, ANCHOR_Y);
+          display.setCursor(anchor_x + round(scroll_x) - 3, ANCHOR_Y);
           display.write('.');
           anchor_x += NS_FONT_WIDTH + NUMBER_SPACING - 6;
         }
       }
 
       // Render unit
-      display.setCursor(anchor_x + scroll_x, ANCHOR_Y);
+      display.setCursor(anchor_x + round(scroll_x), ANCHOR_Y);
       display.write(unit);
       anchor_x += NS_FONT_WIDTH + ITEM_SPACING;
 
@@ -537,7 +537,7 @@ namespace Ui {
       if (option == Option::Confirm)
         real_scroll_x = float(anchor_x + 6);
       display.drawBitmap(
-        anchor_x + scroll_x,
+        anchor_x + round(scroll_x),
         ANCHOR_Y,
         Bitmap::CHECK16,
         16, 16,
