@@ -712,23 +712,23 @@ namespace RotaryEncoder {
     if (encoderPinA_value != encoderPinA_prev) { // check if knob is rotating
     // if pin A state changed before pin B, rotation is clockwise
       if (digitalRead(encoderPinB) != encoderPinA_value) {
-      count ++;
-      bool_CW = true;
+        count ++;
+        bool_CW = true;
       } else {
       // if pin B state changed before pin A, rotation is counter-clockwise
-      bool_CW = false;
-      count--;
+        bool_CW = false;
+        count--;
       }
       static bool even = false;
       if (bool_CW) {
         if (!even) {
-          app.down();
+          app.up();
         }
         even = !even;
         Serial.print("Clockwise | ");
       } else {
         if (!even) {
-          app.up();
+          app.down();
         }
         even = !even;
         Serial.print("Counter-Clockwise | ");
