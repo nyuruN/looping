@@ -701,6 +701,7 @@ namespace RotaryEncoder {
   volatile int count = 0;
   volatile int encoderPinA_prev;
   volatile int encoderPinA_value;
+  volatile unsigned long lastPress = millis();
   volatile boolean bool_CW;
 
   void button() {
@@ -740,7 +741,11 @@ namespace RotaryEncoder {
     tick();
   }
   void butPrest(){
-    button();
+    if (millis() - lastPress < 100)
+      return;
+    if (!digitalRead(3))
+      button();
+    lastPress = millis();
   }
 
   inline void setup() {
@@ -749,7 +754,7 @@ namespace RotaryEncoder {
     pinMode(encoderBtn, INPUT_PULLUP);
     encoderPinA_prev = digitalRead(encoderPinA);
     attachInterrupt(digitalPinToInterrupt(encoderPinA), isr, CHANGE);
-    attachInterrupt(digitalPinToInterrupt(3), butPrest , FALLING);
+    attachInterrupt(digitalPinToInterrupt(3), butPrest , CHANGE);
   }
 }
 
