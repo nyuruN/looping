@@ -48,24 +48,6 @@ namespace Bitmap {
     B00100000, 
     B00000000,
   };
-  static const unsigned char PROGMEM GEAR[] = {
-    B00000111, B11100000, 
-    B00011000, B00011000, 
-    B00100100, B00000100, 
-    B01001000, B00000010, 
-    B01010100, B00000010, 
-    B10001000, B00000001, 
-    B10010000, B00000001, 
-    B10000000, B00000001, 
-    B10000000, B00000001, 
-    B10000000, B00000001, 
-    B10000000, B00000001, 
-    B01000000, B00000010, 
-    B01000000, B00000010, 
-    B00100000, B00000100, 
-    B00011000, B00011000, 
-    B00000111, B11100000,
-  };
   static const unsigned char PROGMEM BALL[] = {
     B00111100, 
     B01000010, 
@@ -629,15 +611,81 @@ class App {
     display.display();
   }
 };
+App app = App();
 
+namespace RotaryEncoder {
+  // Arduino and KY-040 module
+  int encoderPinA = 2; // CLK pin
+  int encoderPinB = 4; // DT pin
+  int encoderBtn = 3; // SW pin
+  volatile int count = 0;
+  volatile int encoderPinA_prev;
+  volatile int encoderPinA_value;
+  volatile boolean bool_CW;
+
+  void button() {
+    Serial.println("button prest");
+    app.press();
+  }
+  void tick() {
+    encoderPinA_value = digitalRead(encoderPinA);
+    if (encoderPinA_value != encoderPinA_prev) { // check if knob is rotating
+    // if pin A state changed before pin B, rotation is clockwise
+      if (digitalRead(encoderPinB) != encoderPinA_value) {
+      count ++;
+      bool_CW = true;
+      } else {
+      // if pin B state changed before pin A, rotation is counter-clockwise
+      bool_CW = false;
+      count--;
+      }
+      static bool even = false;
+      if (bool_CW) {
+        if (!even) {
+          app.down();
+        }
+        even = !even;
+        Serial.print("Clockwise | ");
+      } else {
+        if (!even) {
+          app.up();
+        }
+        even = !even;
+        Serial.print("Counter-Clockwise | ");
+      }
+      Serial.print(count);
+      Serial.println(" | ");
+    }
+    encoderPinA_prev = encoderPinA_value;
+    // check if button is pressed (pin SW)
+    //if (digitalRead(encoderBtn) == LOW) Serial.println("Button Pressed");
+    //else Serial.println("Button Released");
+  }
+  void isr() {
+    tick();
+  }
+  void butPrest(){
+    button();
+  }
+
+  inline void setup() {
+    pinMode (encoderPinA, INPUT_PULLUP);
+    pinMode (encoderPinB, INPUT_PULLUP);
+    pinMode(encoderBtn, INPUT_PULLUP);
+    encoderPinA_prev = digitalRead(encoderPinA);
+    attachInterrupt(digitalPinToInterrupt(encoderPinA), isr, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(3), butPrest , FALLING);
+  }
+}
 
 // Arduino Code
-App app = App();
 void setup() {
   Serial.begin(9600);
   Serial.println(""); // TEMPORARY: Open Serial monitor on WOKWI
 
   app.setup();
+
+  RotaryEncoder::setup();
 }
 void loop() {
   // TEMPORARY SERIAL CONTROL
