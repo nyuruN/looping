@@ -1,5 +1,7 @@
 #include <Arduino.h>
 
+#include <Encoder.h>
+
 #include <SPI.h>
 #include <Wire.h>
 #include <Adafruit_GFX.h>
@@ -695,52 +697,13 @@ App app = App();
 
 namespace RotaryEncoder {
   // Arduino and KY-040 module
-  int encoderPinA = 2; // CLK pin
-  int encoderPinB = 4; // DT pin
   int encoderBtn = 3; // SW pin
-  volatile int count = 0;
-  volatile int encoderPinA_prev;
-  volatile int encoderPinA_value;
   volatile unsigned long lastPress = millis();
-  volatile boolean bool_CW;
 
   void button() {
     app.press();
   }
-  void tick() {
-    encoderPinA_value = digitalRead(encoderPinA);
-    if (encoderPinA_value != encoderPinA_prev) { // check if knob is rotating
-    // if pin A state changed before pin B, rotation is clockwise
-      if (digitalRead(encoderPinB) != encoderPinA_value) {
-        count ++;
-        bool_CW = true;
-      } else {
-      // if pin B state changed before pin A, rotation is counter-clockwise
-        bool_CW = false;
-        count--;
-      }
-      static bool even = false;
-      if (bool_CW) {
-        if (!even) {
-          app.up();
-        }
-        even = !even;
-      } else {
-        if (!even) {
-          app.down();
-        }
-        even = !even;
-      }
-    }
-    encoderPinA_prev = encoderPinA_value;
-    // check if button is pressed (pin SW)
-    //if (digitalRead(encoderBtn) == LOW) Serial.println("Button Pressed");
-    //else Serial.println("Button Released");
-  }
-  void isr() {
-    tick();
-  }
-  void butPrest(){
+  void buttonISR(){
     if (millis() - lastPress < 100)
       return;
     if (!digitalRead(3))
@@ -749,14 +712,12 @@ namespace RotaryEncoder {
   }
 
   inline void setup() {
-    pinMode (encoderPinA, INPUT_PULLUP);
-    pinMode (encoderPinB, INPUT_PULLUP);
     pinMode(encoderBtn, INPUT_PULLUP);
-    encoderPinA_prev = digitalRead(encoderPinA);
-    attachInterrupt(digitalPinToInterrupt(encoderPinA), isr, CHANGE);
-    attachInterrupt(digitalPinToInterrupt(3), butPrest , CHANGE);
+    attachInterrupt(digitalPinToInterrupt(encoderBtn), buttonISR, CHANGE);
   }
 }
+
+Encoder encoder(2, 4);
 
 // Arduino Code
 void setup() {
@@ -781,6 +742,18 @@ void loop() {
     }
     if (serialInput == 'x') {
       app.press();
+    }
+  }
+
+  int8_t c = encoder.read();
+  if (abs(c) > 3) {
+    Serial.println(c);
+    if (c < 0) {
+      app.up();
+      encoder.write(c + 4);
+    } else {
+      app.down();
+      encoder.write(c - 4);
     }
   }
 
