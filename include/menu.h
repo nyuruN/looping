@@ -93,7 +93,7 @@ namespace Menu {
             currentOffset = offsetNext;
           }
 
-          display.setCursor(anchorX, ANCHOR_Y - currentOffset);
+          display.setCursor(anchorX, round(ANCHOR_Y - currentOffset));
           display.write(pgm_read_byte_near(STR + i));
           anchorX += FONT_WIDTH;
         }
