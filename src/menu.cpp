@@ -55,10 +55,7 @@ const uint8_t* const Menu::MassSetup::ICONS[] PROGMEM = {
 };
 
 const char* const Menu::MassPreset::LABELS[] PROGMEM = {
-  Menu::LABELS0,
-  MassSetup::LABELS1,
-  MassSetup::LABELS2,
-  MassSetup::LABELS3
+  Menu::LABELS0
 };
 
 const char* const Menu::Settings::LABELS[] PROGMEM = {
