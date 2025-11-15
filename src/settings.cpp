@@ -2,7 +2,7 @@
 
 #include <EEPROM.h>
 
-#include "../include/eeprom.h"
+#include "../include/settings.h"
 
 uint16_t EEPROMSettings::masses[];
 

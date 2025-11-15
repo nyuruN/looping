@@ -5,7 +5,7 @@
 #include "./app.h"
 #include "./bitmap.h"
 #include "./display.h"
-#include "./eeprom.h"
+#include "./settings.h"
 #include "./ui.h"
 
 namespace Menu {

@@ -4,7 +4,7 @@
 
 #include "../include/app.h"
 #include "../include/display.h"
-#include "../include/eeprom.h"
+#include "../include/settings.h"
 
 Adafruit_SSD1306 display = Adafruit_SSD1306(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
