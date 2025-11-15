@@ -114,8 +114,8 @@ namespace Menu {
     uint8_t cursor = 0;
     uint8_t digits[4] = {0}; // 99.99 MAX / stored in reverse order
     bool editing = false;
-    uint16_t upAnimStart = 0;
-    uint16_t downAnimStart = 0;
+    uint8_t up_anim = 0;
+    uint8_t down_anim = 0;
 
     public:
       uint16_t number = 1101; // 11.01
@@ -131,7 +131,7 @@ namespace Menu {
       void up() {
         if (editing) {
           digits[sizeof(digits) - cursor - 1] = (digits[sizeof(digits) - cursor - 1] == 9) ? 0 : digits[sizeof(digits) - cursor - 1] + 1;
-          upAnimStart = millis();
+          up_anim = 0;
           return;
         }
 
@@ -153,7 +153,7 @@ namespace Menu {
       void down() {
         if (editing) {
           digits[sizeof(digits) - cursor - 1] = (digits[sizeof(digits) - cursor - 1] == 0) ? 9 : digits[sizeof(digits) - cursor - 1] - 1;
-          downAnimStart = millis();
+          down_anim = 0;
           return;
         }
 
@@ -203,7 +203,7 @@ namespace Menu {
 
       float offset_anim(float t) {
         constexpr float AMPLITUDE = 8.0;
-        constexpr float DURATION = 0.25;
+        constexpr float DURATION = 0.2;
         constexpr float MULTIPLIER = 1.0 / (DURATION / 2.);
         // Quatratic function with natural rise & fall
         return AMPLITUDE * max(0., 1. - (MULTIPLIER * t - 1.) * (MULTIPLIER * t - 1.));
@@ -273,8 +273,15 @@ namespace Menu {
 
         const int8_t inverse = editing ? 1 : -1;
         const int8_t wave = (1.0 + sin(millis() / 150.0)) * 2.0;
-        const int8_t offsetUp = offset_anim(((uint16_t) millis() - upAnimStart) / 1000.0);
-        const int8_t offsetDown = offset_anim(((uint16_t) millis() - downAnimStart) / 1000.0);
+        const int8_t offsetUp = offset_anim(float(up_anim) / 1000.0);
+        const int8_t offsetDown = offset_anim(float(down_anim) / 1000.0);
+
+        // Pretend like we're privileged enough to have delta time
+        constexpr uint8_t delta_time = 30;
+        if (up_anim < 255 - delta_time)
+          up_anim += delta_time;
+        if (down_anim < 255 - delta_time)
+          down_anim += delta_time;
 
         display.drawBitmap(
           SELECT_ANCHOR_X,
