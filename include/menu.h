@@ -203,8 +203,10 @@ namespace Menu {
 
       float offset_anim(float t) {
         constexpr float AMPLITUDE = 8.0;
-        constexpr float DURATION = 0.2;
-        return AMPLITUDE * max(0.0, - (t - DURATION) / abs(t - DURATION));
+        constexpr float DURATION = 0.25;
+        constexpr float MULTIPLIER = 1.0 / (DURATION / 2.);
+        // Quatratic function with natural rise & fall
+        return AMPLITUDE * max(0., 1. - (MULTIPLIER * t - 1.) * (MULTIPLIER * t - 1.));
       }
 
       void render() {
@@ -270,12 +272,9 @@ namespace Menu {
         );
 
         const int8_t inverse = editing ? 1 : -1;
-        static int8_t offsetUp = 0;
-        static int8_t offsetDown = 0;
-        const float wave = (1.0 + sin(millis() / 150.0)) * 2.0;
-
-        offsetUp = Ui::Lerp(offsetUp, offset_anim(((uint16_t) millis() - upAnimStart) / 1000.0), 0.5);
-        offsetDown = Ui::Lerp(offsetDown, offset_anim(((uint16_t) millis() - downAnimStart) / 1000.0), 0.5);
+        const int8_t wave = (1.0 + sin(millis() / 150.0)) * 2.0;
+        const int8_t offsetUp = offset_anim(((uint16_t) millis() - upAnimStart) / 1000.0);
+        const int8_t offsetDown = offset_anim(((uint16_t) millis() - downAnimStart) / 1000.0);
 
         display.drawBitmap(
           SELECT_ANCHOR_X,
