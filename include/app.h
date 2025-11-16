@@ -10,6 +10,7 @@ class App {
       MassSetup,
       MassPreset,
       NumberSelect,
+      Calibrate,
       Dashboard,
       Settings,
       Credits,

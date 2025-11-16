@@ -14,9 +14,9 @@
     { "type": "wokwi-ky-040", "id": "encoder1", "top": 366.5, "left": 287.2, "attrs": {} }
   ],
   "connections": [
-    [ "encoder1:DT", "nano:4", "green", [ "v-191.9", "h-172.8" ] ],
+    [ "encoder1:DT", "nano:2", "green", [ "v-191.9", "h-172.8" ] ],
     [ "encoder1:SW", "nano:3", "green", [ "v-201.5", "h-163.2" ] ],
-    [ "encoder1:CLK", "nano:2", "green", [ "v-182.4", "h-153.6" ] ],
+    [ "encoder1:CLK", "nano:4", "green", [ "v-182.4", "h-153.6" ] ],
     [ "encoder1:GND", "nano:GND.2", "black", [ "v-220", "h-144" ] ],
     [ "nano:GND.1", "oled1:GND", "black", [] ],
     [ "nano:A5", "oled1:SCL", "green", [] ],

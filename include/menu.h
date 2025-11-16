@@ -102,8 +102,8 @@ namespace Menu {
 
   class NumberSelect {
     enum class State {
-      Number = 0,
-      Back,
+      Back = 0,
+      Number,
       Confirm,
       End
     } state = State::Back;
@@ -111,11 +111,11 @@ namespace Menu {
     App::State prevState;
 
     float scrollX = 0.0;
-    uint8_t cursor = 0;
     uint8_t digits[4] = {0}; // 99.99 MAX / stored in reverse order
+    uint8_t cursor;
     bool editing = false;
-    uint8_t up_anim = 0;
-    uint8_t down_anim = 0;
+    uint8_t upAnim = 0;
+    uint8_t downAnim = 0;
 
     public:
       uint16_t number = 1101; // 11.01
@@ -130,12 +130,14 @@ namespace Menu {
 
       void up() {
         if (editing) {
-          digits[sizeof(digits) - cursor - 1] = (digits[sizeof(digits) - cursor - 1] == 9) ? 0 : digits[sizeof(digits) - cursor - 1] + 1;
-          up_anim = 0;
+          digits[sizeof(digits) - cursor - 1] = (digits[sizeof(digits) - cursor - 1] == 0) ? 9 : digits[sizeof(digits) - cursor - 1] - 1;
+          downAnim = 0;
           return;
         }
 
-        if (state == State::Number) {
+        if (state == State::Confirm) {
+          cursor = 0;
+        } else if (state == State::Number) {
           if (cursor == sizeof(digits) - 1) {
             state = State::Back;
           } else {
@@ -144,20 +146,19 @@ namespace Menu {
           return;
         }
 
-        if (state == State::Back)
-          cursor = 0;
-
-        state = (State) (((int8_t) state + 1 == (int8_t) State::End) ? 0 : ((int8_t) state + 1));
+        state = (State) (((int8_t) state - 1 == -1) ? (int8_t) State::End - 1 : ((int8_t) state - 1));
       }
 
       void down() {
         if (editing) {
-          digits[sizeof(digits) - cursor - 1] = (digits[sizeof(digits) - cursor - 1] == 0) ? 9 : digits[sizeof(digits) - cursor - 1] - 1;
-          down_anim = 0;
+          digits[sizeof(digits) - cursor - 1] = (digits[sizeof(digits) - cursor - 1] == 9) ? 0 : digits[sizeof(digits) - cursor - 1] + 1;
+          upAnim = 0;
           return;
         }
 
-        if (state == State::Number) {
+        if (state == State::Back) {
+          cursor = sizeof(digits) - 1;
+        } else if (state == State::Number) {
           if (cursor == 0) {
             state = State::Confirm;
           } else {
@@ -166,10 +167,7 @@ namespace Menu {
           return;
         }
 
-        if (state == State::Confirm)
-          cursor = sizeof(digits) - 1;
-
-        state = (State) (((int8_t) state - 1 == -1) ? (int8_t) State::End - 1 : ((int8_t) state - 1));
+        state = (State) (((int8_t) state + 1 == (int8_t) State::End) ? 0 : ((int8_t) state + 1));
       }
       void press() {
         switch (state) {
@@ -192,9 +190,8 @@ namespace Menu {
 
       void enter(App::State prevState) {
         this->prevState = prevState;
-        cursor = sizeof(digits) - 1;
         for (uint8_t i = 0; i < sizeof(digits); ++i) {
-          digits[i] = get_digit_at(number, cursor - i);
+          digits[i] = get_digit_at(number, sizeof(digits) - i - 1);
         }
       }
 
@@ -204,9 +201,9 @@ namespace Menu {
       float offset_anim(float t) {
         constexpr float AMPLITUDE = 8.0;
         constexpr float DURATION = 0.2;
-        constexpr float MULTIPLIER = 1.0 / (DURATION / 2.);
+        constexpr float MULTIPLIER = 1.0 / (DURATION / 2.0);
         // Quatratic function with natural rise & fall
-        return AMPLITUDE * max(0., 1. - (MULTIPLIER * t - 1.) * (MULTIPLIER * t - 1.));
+        return AMPLITUDE * max(0.0, 1.0 - (MULTIPLIER * t - 1.0) * (MULTIPLIER * t - 1.0));
       }
 
       void render() {
@@ -273,15 +270,15 @@ namespace Menu {
 
         const int8_t inverse = editing ? 1 : -1;
         const int8_t wave = (1.0 + sin(millis() / 150.0)) * 2.0;
-        const int8_t offsetUp = offset_anim(float(up_anim) / 1000.0);
-        const int8_t offsetDown = offset_anim(float(down_anim) / 1000.0);
+        const int8_t offsetUp = offset_anim(float(upAnim) / 1000.0);
+        const int8_t offsetDown = offset_anim(float(downAnim) / 1000.0);
 
         // Pretend like we're privileged enough to have delta time
         constexpr uint8_t delta_time = 30;
-        if (up_anim < 255 - delta_time)
-          up_anim += delta_time;
-        if (down_anim < 255 - delta_time)
-          down_anim += delta_time;
+        if (upAnim < 255 - delta_time)
+          upAnim += delta_time;
+        if (downAnim < 255 - delta_time)
+          downAnim += delta_time;
 
         display.drawBitmap(
           SELECT_ANCHOR_X,
@@ -501,6 +498,7 @@ namespace Menu {
     enum class State {
       Back = 0,
       MassPreset,
+      Calibrate,
       End,
     } state;
 
@@ -508,6 +506,8 @@ namespace Menu {
     static const uint8_t* const ICONS[] PROGMEM;
 
     public:
+      static const char LABELS0[] PROGMEM;
+
       void up() {
         state = (State) (((int8_t) state - 1 == -1) ? (int8_t) State::End - 1 : ((int8_t) state - 1));
       }
@@ -523,6 +523,9 @@ namespace Menu {
             break;
           case State::MassPreset:
             app.toNextState(App::State::MassPreset);
+            break;
+          case State::Calibrate:
+            app.toNextState(App::State::Calibrate);
             break;
           default:
             break;
@@ -540,4 +543,122 @@ namespace Menu {
         Ui::List::render((uint8_t) State::Back, (uint8_t) State::End, (uint8_t) state);
       }
   } extern settings;
+
+  class Calibrate {
+    public:
+      void up() {
+      }
+
+      void down() {
+      }
+
+      void press() {
+        app.toNextState(App::State::Settings);
+      }
+
+      void enter(App::State prevState) {
+      }
+
+      void exit(App::State nextState) {
+      }
+
+      void drawIndicator(int16_t value, int8_t offsetX) {
+        constexpr int8_t SPACING_Y = FONT_HEIGHT + 2;
+
+        static char buf[5];
+
+        int16_t roundValue = round(value / 10.0) * 10;
+        int8_t offset = (value - roundValue) / 10.0 * SPACING_Y;
+
+        for (int8_t i = 0; i < 5; ++i) {
+          sprintf(buf, "%4.1d", roundValue + (2 - i) * 10);
+          display.setCursor(
+            SCREEN_WIDTH / 2 - FONT_HEIGHT * 4 / 2 - offsetX,
+            SCREEN_HEIGHT / 2.0 - FONT_HEIGHT / 2.0 - (2 - i) * SPACING_Y + offset
+          );
+          display.write(buf);
+        }
+      }
+
+      void render() {
+        // constexpr uint8_t RECT_WIDTH = 120;
+        // constexpr uint8_t RECT_HEIGHT = 6;
+        //
+        // constexpr uint8_t RANGE = 10;
+        //
+        // constexpr int16_t TARGET_VALUE = 400; 
+        //
+        // static float l1OffsetX = 0.0;
+        // static float l2OffsetX = 0.0;
+        //
+        // l1OffsetX = Ui::Lerp(l1OffsetX, (analogRead(A0) - TARGET_VALUE) / (1024.0 / RECT_WIDTH), 0.4);
+        // l2OffsetX = Ui::Lerp(l2OffsetX, (analogRead(A1) - TARGET_VALUE) / (1024.0 / RECT_WIDTH), 0.4);
+        //
+        // //
+        // // int16_t value = 0;
+        // // int16_t anchorY = SCREEN_HEIGHT / 2 - NS_FONT_HEIGHT
+        // //
+        // display.drawBitmap(
+        //   SCREEN_WIDTH / 2 + round(l1OffsetX) - 8,
+        //   SCREEN_HEIGHT / 2 - 8 - (RECT_HEIGHT / 2) - 2,
+        //   Bitmap::DOWN16X8,
+        //   16, 8,
+        //   SSD1306_WHITE
+        // );
+        //
+        // display.drawBitmap(
+        //   SCREEN_WIDTH / 2 + round(l2OffsetX) - 8,
+        //   SCREEN_HEIGHT / 2 + (RECT_HEIGHT / 2) + 2,
+        //   Bitmap::UP16X8,
+        //   16, 8,
+        //   SSD1306_WHITE
+        // );
+        //
+        // display.drawRect(
+        //   SCREEN_WIDTH / 2 - RECT_WIDTH / 2,
+        //   SCREEN_HEIGHT / 2 - RECT_HEIGHT / 2,
+        //   RECT_WIDTH,
+        //   RECT_HEIGHT,
+        //   SSD1306_WHITE
+        // );
+        //
+        // display.fillRect(
+        //   SCREEN_WIDTH / 2 - RANGE / 2,
+        //   SCREEN_HEIGHT / 2 - RECT_HEIGHT / 2,
+        //   RANGE,
+        //   RECT_HEIGHT,
+        //   SSD1306_WHITE
+        // );
+
+        static float valueA0 = 0;
+        static float valueA1 = 0;
+        static int16_t readA0 = -400;
+        static int16_t readA1 = -400;
+
+        int16_t newVal = analogRead(A0);
+        if (abs(newVal - readA0) > 4)
+          readA0 = newVal;
+
+        newVal = analogRead(A1);
+        if (abs(newVal - readA1) > 4)
+          readA1 = newVal;
+
+        valueA0 = Ui::Lerp(valueA0, readA0 - 400, 0.2);
+        valueA1 = Ui::Lerp(valueA1, readA1 - 400, 0.2);
+
+        drawIndicator(valueA0, -16);
+        drawIndicator(valueA1, 16);
+
+        display.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT / 4, SSD1306_BLACK);
+        display.fillRect(0, SCREEN_HEIGHT - SCREEN_HEIGHT / 4, SCREEN_WIDTH, SCREEN_HEIGHT / 4, SSD1306_BLACK);
+        display.drawRoundRect(
+          SCREEN_WIDTH / 2 - FONT_WIDTH * 4 / 2 - 4 - 16,
+          SCREEN_HEIGHT / 2 - SCREEN_HEIGHT / 4 - 4,
+          FONT_WIDTH * 4 + 8 + 32,
+          SCREEN_HEIGHT / 2 + 8,
+          3,
+          SSD1306_WHITE
+        );
+      }
+  } extern calibrate;
 };

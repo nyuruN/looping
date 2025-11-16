@@ -25,10 +25,10 @@ const char* const Menu::Menu::LABELS[] PROGMEM = {
 
 const uint8_t* const Menu::Menu::ICONS[] PROGMEM = {
   Bitmap::BACKARROW,
-  Bitmap::BACKARROW,
-  Bitmap::BACKARROW,
-  Bitmap::BACKARROW,
-  Bitmap::BACKARROW
+  Bitmap::GEAR,
+  Bitmap::ARROW,
+  Bitmap::GEAR,
+  Bitmap::ARROW
 };
 
 const char Menu::MassSetup::FMT[] PROGMEM = "%6.1d.%02dg";
@@ -51,21 +51,25 @@ const uint8_t* const Menu::MassSetup::ICONS[] PROGMEM = {
   Bitmap::BALL,
   Bitmap::BALL,
   Bitmap::BALL,
-  Bitmap::BACKARROW
+  Bitmap::GEAR
 };
 
 const char* const Menu::MassPreset::LABELS[] PROGMEM = {
   Menu::LABELS0
 };
 
+const char Menu::Settings::LABELS0[] PROGMEM = "Calibrate";
+
 const char* const Menu::Settings::LABELS[] PROGMEM = {
   Menu::LABELS0,
-  Menu::LABELS1
+  Menu::LABELS1,
+  LABELS0
 };
 
 const uint8_t* const Menu::Settings::ICONS[] PROGMEM = {
   Bitmap::BACKARROW,
-  Bitmap::BACKARROW
+  Bitmap::GEAR,
+  Bitmap::GEAR
 };
 
 Menu::Main Menu::main;
@@ -74,3 +78,4 @@ Menu::Menu Menu::menu;
 Menu::MassSetup Menu::massSetup;
 Menu::MassPreset Menu::massPreset;
 Menu::Settings Menu::settings;
+Menu::Calibrate Menu::calibrate;
