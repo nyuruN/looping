@@ -581,55 +581,6 @@ namespace Menu {
       }
 
       void render() {
-        // constexpr uint8_t RECT_WIDTH = 120;
-        // constexpr uint8_t RECT_HEIGHT = 6;
-        //
-        // constexpr uint8_t RANGE = 10;
-        //
-        // constexpr int16_t TARGET_VALUE = 400; 
-        //
-        // static float l1OffsetX = 0.0;
-        // static float l2OffsetX = 0.0;
-        //
-        // l1OffsetX = Ui::Lerp(l1OffsetX, (analogRead(A0) - TARGET_VALUE) / (1024.0 / RECT_WIDTH), 0.4);
-        // l2OffsetX = Ui::Lerp(l2OffsetX, (analogRead(A1) - TARGET_VALUE) / (1024.0 / RECT_WIDTH), 0.4);
-        //
-        // //
-        // // int16_t value = 0;
-        // // int16_t anchorY = SCREEN_HEIGHT / 2 - NS_FONT_HEIGHT
-        // //
-        // display.drawBitmap(
-        //   SCREEN_WIDTH / 2 + round(l1OffsetX) - 8,
-        //   SCREEN_HEIGHT / 2 - 8 - (RECT_HEIGHT / 2) - 2,
-        //   Bitmap::DOWN16X8,
-        //   16, 8,
-        //   SSD1306_WHITE
-        // );
-        //
-        // display.drawBitmap(
-        //   SCREEN_WIDTH / 2 + round(l2OffsetX) - 8,
-        //   SCREEN_HEIGHT / 2 + (RECT_HEIGHT / 2) + 2,
-        //   Bitmap::UP16X8,
-        //   16, 8,
-        //   SSD1306_WHITE
-        // );
-        //
-        // display.drawRect(
-        //   SCREEN_WIDTH / 2 - RECT_WIDTH / 2,
-        //   SCREEN_HEIGHT / 2 - RECT_HEIGHT / 2,
-        //   RECT_WIDTH,
-        //   RECT_HEIGHT,
-        //   SSD1306_WHITE
-        // );
-        //
-        // display.fillRect(
-        //   SCREEN_WIDTH / 2 - RANGE / 2,
-        //   SCREEN_HEIGHT / 2 - RECT_HEIGHT / 2,
-        //   RANGE,
-        //   RECT_HEIGHT,
-        //   SSD1306_WHITE
-        // );
-
         static float valueA0 = 0;
         static float valueA1 = 0;
         static int16_t readA0 = -400;
@@ -646,19 +597,15 @@ namespace Menu {
         valueA0 = Ui::Lerp(valueA0, readA0 - 400, 0.2);
         valueA1 = Ui::Lerp(valueA1, readA1 - 400, 0.2);
 
-        drawIndicator(valueA0, -16);
-        drawIndicator(valueA1, 16);
+        for (int i = 16; i < SCREEN_WIDTH - 16; i += 4) {
+          display.drawPixel(i, 32, SSD1306_WHITE);
+        }
+
+        drawIndicator(valueA0, -20);
+        drawIndicator(valueA1, 20);
 
         display.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT / 4, SSD1306_BLACK);
         display.fillRect(0, SCREEN_HEIGHT - SCREEN_HEIGHT / 4, SCREEN_WIDTH, SCREEN_HEIGHT / 4, SSD1306_BLACK);
-        display.drawRoundRect(
-          SCREEN_WIDTH / 2 - FONT_WIDTH * 4 / 2 - 4 - 16,
-          SCREEN_HEIGHT / 2 - SCREEN_HEIGHT / 4 - 4,
-          FONT_WIDTH * 4 + 8 + 32,
-          SCREEN_HEIGHT / 2 + 8,
-          3,
-          SSD1306_WHITE
-        );
       }
   } extern calibrate;
 };
