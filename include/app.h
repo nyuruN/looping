@@ -10,7 +10,6 @@ class App {
       MassSetup,
       MassPreset,
       NumberSelect,
-      Calibrate,
       Dashboard,
       Settings,
       Credits,
@@ -18,7 +17,7 @@ class App {
     };
 
   private:
-    State state = State::Main;
+    State state = State::Dashboard;
     State nextState = state;
 
   public:

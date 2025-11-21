@@ -268,13 +268,19 @@ namespace Menu {
           SSD1306_WHITE
         );
 
-        const int8_t inverse = editing ? 1 : -1;
-        const int8_t wave = (1.0 + sin(millis() / 150.0)) * 2.0;
-        const int8_t offsetUp = offset_anim(float(upAnim) / 1000.0);
-        const int8_t offsetDown = offset_anim(float(downAnim) / 1000.0);
 
         // Pretend like we're privileged enough to have delta time
         constexpr uint8_t delta_time = 30;
+
+        const int8_t inverse = editing ? 1 : -1;
+        
+        //const int8_t wave = (1.0 + sin(millis() / 150.0)) * 2.0;
+
+        const int8_t wave = max(min(abs(int8_t((millis() >> 3) % 128) - 64), 48), 16) >> 3;
+
+        const int8_t offsetUp = offset_anim(float(upAnim) / 1000.0);
+        const int8_t offsetDown = offset_anim(float(downAnim) / 1000.0);
+
         if (upAnim < 255 - delta_time)
           upAnim += delta_time;
         if (downAnim < 255 - delta_time)
@@ -336,13 +342,15 @@ namespace Menu {
         switch (state) {
           case State::Back:
           case State::Credits:
-            app.toNextState(App::State::Main);
+            app.toNextState(App::State::Dashboard);
             break;
           case State::MassSetup:
             app.toNextState(App::State::MassSetup);
             break;
           case State::HeightSetup:
+            EEPROMSettings::load();
             numberSelect.unit = Units::CENTIMETER;
+            numberSelect.number = EEPROMSettings::height;
             app.toNextState(App::State::NumberSelect);
             break;
           case State::Settings:
@@ -354,6 +362,11 @@ namespace Menu {
       }
 
       void enter(App::State prevState) {
+        if (prevState == App::State::NumberSelect) {
+          EEPROMSettings::height = numberSelect.number;
+          EEPROMSettings::save();
+        }
+
         Ui::List::create((const char**) LABELS, (const uint8_t**) ICONS, (uint8_t) State::End);
       }
 
@@ -524,9 +537,6 @@ namespace Menu {
           case State::MassPreset:
             app.toNextState(App::State::MassPreset);
             break;
-          case State::Calibrate:
-            app.toNextState(App::State::Calibrate);
-            break;
           default:
             break;
         }
@@ -544,68 +554,87 @@ namespace Menu {
       }
   } extern settings;
 
-  class Calibrate {
+  class Dashboard {
+    uint16_t maxHeight = 0;
+    uint16_t minHeight = -1;
+
+    uint16_t heights[5] = {100, 200, 150, 400, 500};
+
+    int8_t selected = 0;
+
     public:
       void up() {
+        selected = ((selected - 1 == -1) ? 4 : (selected - 1));
       }
 
       void down() {
+        selected = ((selected + 1 == 5) ? 0 : (selected + 1));
       }
 
       void press() {
-        app.toNextState(App::State::Settings);
+        app.toNextState(App::State::Menu);
       }
 
       void enter(App::State prevState) {
+        for (uint8_t i = 0; i < 5; i++) {
+          maxHeight = max(maxHeight, heights[i]);
+          minHeight = min(minHeight, heights[i]);
+        }
       }
 
       void exit(App::State nextState) {
       }
 
-      void drawIndicator(int16_t value, int8_t offsetX) {
-        constexpr int8_t SPACING_Y = FONT_HEIGHT + 2;
-
-        static char buf[5];
-
-        int16_t roundValue = round(value / 10.0) * 10;
-        int8_t offset = (value - roundValue) / 10.0 * SPACING_Y;
-
-        for (int8_t i = 0; i < 5; ++i) {
-          sprintf(buf, "%4.1d", roundValue + (2 - i) * 10);
-          display.setCursor(
-            SCREEN_WIDTH / 2 - FONT_HEIGHT * 4 / 2 - offsetX,
-            SCREEN_HEIGHT / 2.0 - FONT_HEIGHT / 2.0 - (2 - i) * SPACING_Y + offset
-          );
-          display.write(buf);
-        }
-      }
-
       void render() {
-        static float valueA0 = 0;
-        static float valueA1 = 0;
-        static int16_t readA0 = -400;
-        static int16_t readA1 = -400;
+        // Render points
+        uint8_t lastAnchorX = 0;
+        uint8_t lastAnchorY = 0;
+        for (int8_t i = 0; i < 5; i++) {
+          float ratio = float(heights[i] - minHeight) / (float) (maxHeight - minHeight);
+          // 0 to 40
 
-        int16_t newVal = analogRead(A0);
-        if (abs(newVal - readA0) > 4)
-          readA0 = newVal;
+          uint8_t anchorY = (1. - ratio) * 40. + 5.;
+          int8_t anchorX = 64 + (i - 2) * 20.;
 
-        newVal = analogRead(A1);
-        if (abs(newVal - readA1) > 4)
-          readA1 = newVal;
+          if (i)
+            display.drawLine(lastAnchorX, lastAnchorY, anchorX, anchorY, SSD1306_WHITE);
 
-        valueA0 = Ui::Lerp(valueA0, readA0 - 400, 0.2);
-        valueA1 = Ui::Lerp(valueA1, readA1 - 400, 0.2);
+          if (i == 4) {
+            display.fillRoundRect(
+              anchorX - 3,
+              anchorY - 3,
+              7,
+              7,
+              1,
+              SSD1306_BLACK
+            );
+            if (i == selected)
+              display.drawRoundRect(
+                anchorX - 4,
+                anchorY - 4,
+                9,
+                9,
+                1,
+                SSD1306_WHITE
+              );
+            display.drawBitmap(
+              anchorX - 3,
+              anchorY - 3,
+              Bitmap::MENU,
+              8,
+              8,
+              SSD1306_WHITE
+            );
+          } else
+            display.fillCircle(anchorX, anchorY, 2 + (i == selected), SSD1306_WHITE);          
 
-        for (int i = 16; i < SCREEN_WIDTH - 16; i += 4) {
-          display.drawPixel(i, 32, SSD1306_WHITE);
+          lastAnchorX = anchorX;
+          lastAnchorY = anchorY;
         }
 
-        drawIndicator(valueA0, -20);
-        drawIndicator(valueA1, 20);
+        
+        display.setCursor(0, SCREEN_HEIGHT - FONT_HEIGHT);
 
-        display.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT / 4, SSD1306_BLACK);
-        display.fillRect(0, SCREEN_HEIGHT - SCREEN_HEIGHT / 4, SCREEN_WIDTH, SCREEN_HEIGHT / 4, SSD1306_BLACK);
       }
-  } extern calibrate;
+  } extern dashboard;
 };

@@ -34,8 +34,8 @@ void App::up() {
     case State::Settings:
       Menu::settings.up();
       break;
-    case State::Calibrate:
-      Menu::calibrate.up();
+    case State::Dashboard:
+      Menu::dashboard.up();
       break;
     case State::MassPreset:
       Menu::massPreset.up();
@@ -62,8 +62,8 @@ void App::down() {
     case State::Settings:
       Menu::settings.down();
       break;
-    case State::Calibrate:
-      Menu::calibrate.down();
+    case State::Dashboard:
+      Menu::dashboard.down();
       break;
     case State::MassPreset:
       Menu::massPreset.down();
@@ -90,8 +90,8 @@ void App::press() {
     case State::Settings:
       Menu::settings.press();
       break;
-    case State::Calibrate:
-      Menu::calibrate.press();
+    case State::Dashboard:
+      Menu::dashboard.press();
       break;
     case State::MassPreset:
       Menu::massPreset.press();
@@ -125,8 +125,8 @@ void App::enter() {
     case State::Settings:
       Menu::settings.enter(prevState);
       break;
-    case State::Calibrate:
-      Menu::calibrate.enter(prevState);
+    case State::Dashboard:
+      Menu::dashboard.enter(prevState);
       break;
     case State::MassPreset:
       Menu::massPreset.enter(prevState);
@@ -153,8 +153,8 @@ void App::exit() {
     case State::Settings:
       Menu::settings.exit(nextState);
       break;
-    case State::Calibrate:
-      Menu::calibrate.exit(nextState);
+    case State::Dashboard:
+      Menu::dashboard.exit(nextState);
       break;
     case State::MassPreset:
       Menu::massPreset.exit(nextState);
@@ -188,8 +188,8 @@ void App::render() {
     case State::Settings:
       Menu::settings.render();
       break;
-    case State::Calibrate:
-      Menu::calibrate.render();
+    case State::Dashboard:
+      Menu::dashboard.render();
       break;
     case State::MassPreset:
       Menu::massPreset.render();

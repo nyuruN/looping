@@ -25,7 +25,7 @@ const char* const Menu::Menu::LABELS[] PROGMEM = {
 
 const uint8_t* const Menu::Menu::ICONS[] PROGMEM = {
   Bitmap::BACKARROW,
-  Bitmap::GEAR,
+  Bitmap::WEIGHT8X8,
   Bitmap::ARROW,
   Bitmap::GEAR,
   Bitmap::ARROW
@@ -78,4 +78,4 @@ Menu::Menu Menu::menu;
 Menu::MassSetup Menu::massSetup;
 Menu::MassPreset Menu::massPreset;
 Menu::Settings Menu::settings;
-Menu::Calibrate Menu::calibrate;
+Menu::Dashboard Menu::dashboard;
