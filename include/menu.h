@@ -581,6 +581,8 @@ namespace Menu {
 
     public:
       void refit() {
+        keys_offset = clamp(0, nodes - max_keys + 1, selected - 2);
+
         maxKey = 0;
         minKey = -1;
         for (uint8_t i = 0; i < max_keys; i++) {
@@ -589,41 +591,35 @@ namespace Menu {
           minKey = min(minKey, keys[i]);
         }
 
-        selected_node = Node {
-          height: heights[selected],
-          mass: masses[selected],
-          velocity: velocities[selected]
-        };
+        if (selected < nodes)
+          selected_node = Node {
+            height: heights[selected],
+            mass: masses[selected],
+            velocity: velocities[selected]
+          };
       }
 
       void up() {
-        if (--selected == -1) {
+        if (--selected == -1)
           selected = nodes - 1;
-          keys_offset = nodes - max_keys;
-        } else {
-          keys_offset = clamp(0, nodes - max_keys, selected - 2);
-        }
 
         refit();
       }
 
       void down() {
-        if (++selected == nodes) {
+        if (++selected == nodes + 1)
           selected = 0;
-          keys_offset = 0;
-        } else {
-          keys_offset = clamp(0, nodes - max_keys, selected - 2);
-        }
 
         refit();
       }
 
       void press() {
-        if (selected == nodes - 1)
+        if (selected == nodes)
           app.toNextState(App::State::Menu);
       }
 
       void enter(App::State prevState) {
+        selected = nodes - 1;
         refit();
       }
 
@@ -644,9 +640,23 @@ namespace Menu {
           uint8_t anchorY = (1. - ratio) * GRAPH_HEIGHT + GRAPH_Y;
           int8_t anchorX = 64 + (i - 2) * 20.;
 
-          if (i)
-            display.drawLine(lastAnchorX + POINT_PADDING, lastAnchorY, anchorX - POINT_PADDING, anchorY, SSD1306_WHITE);
+          // Draw menu node
+          if (i + keys_offset == nodes) {
+            constexpr uint8_t GRAPH_MIDDLE = 27;
+            constexpr char ASCII_MENU_ICON = 239;
+            display.setCursor(anchorX - 2, GRAPH_MIDDLE - 3);
+            display.write(ASCII_MENU_ICON);
+            anchorY = GRAPH_MIDDLE;
+          } else {
+            // Draw line
+            if (i)
+              display.drawLine(lastAnchorX + POINT_PADDING, lastAnchorY, anchorX - POINT_PADDING, anchorY, SSD1306_WHITE);
 
+            // Draw point
+            display.fillCircle(anchorX, anchorY, 1, SSD1306_WHITE);          
+          }
+
+          // Draw selection indicator
           if ((i + keys_offset) == selected) {
             display.drawRoundRect(
               anchorX - 4,
@@ -657,13 +667,6 @@ namespace Menu {
               SSD1306_WHITE
             );
           }
-
-          if (i == 4) {
-            display.drawFastVLine(anchorX - 3, anchorY - 3, 8, SSD1306_BLACK);
-            display.setCursor(anchorX - 2, anchorY - 3);
-            display.write(239);
-          } else
-            display.fillCircle(anchorX, anchorY, 1, SSD1306_WHITE);          
 
           lastAnchorX = anchorX;
           lastAnchorY = anchorY;
