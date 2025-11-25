@@ -672,15 +672,21 @@ namespace Menu {
           lastAnchorY = anchorY;
         }
         
-        sprintf(Ui::List::list[0].label, "%d.%.2dcm", selected_node.height / 100, selected_node.height % 100);
-        display.drawBitmap(0, SCREEN_HEIGHT - FONT_HEIGHT, Bitmap::HEIGHT8X8, 8, 8, SSD1306_WHITE);
-        display.setCursor(8 + 1, SCREEN_HEIGHT - FONT_HEIGHT);
-        display.write(Ui::List::list[0].label);
+        if (selected == nodes) {
+          const uint8_t len = sprintf(Ui::List::list[0].label, "Menu");
+          display.setCursor(SCREEN_WIDTH / 2 - FONT_WIDTH * len / 2, SCREEN_HEIGHT - FONT_HEIGHT);
+          display.write(Ui::List::list[0].label);
+        } else {
+          sprintf(Ui::List::list[0].label, "%d.%.2dcm", selected_node.height / 100, selected_node.height % 100);
+          display.drawBitmap(0, SCREEN_HEIGHT - FONT_HEIGHT, Bitmap::HEIGHT8X8, 8, 8, SSD1306_WHITE);
+          display.setCursor(8 + 1, SCREEN_HEIGHT - FONT_HEIGHT);
+          display.write(Ui::List::list[0].label);
 
-        sprintf(Ui::List::list[1].label, "%d.%.2dg", selected_node.mass / 100, selected_node.mass % 100);
-        display.drawBitmap(SCREEN_WIDTH - FONT_WIDTH * strlen(Ui::List::list[1].label) - 1 - 8, SCREEN_HEIGHT - FONT_HEIGHT, Bitmap::WEIGHT8X8, 8, 8, SSD1306_WHITE);
-        display.setCursor(SCREEN_WIDTH - FONT_WIDTH * strlen(Ui::List::list[1].label), SCREEN_HEIGHT - FONT_HEIGHT);
-        display.write(Ui::List::list[1].label);
+          const uint8_t len = sprintf(Ui::List::list[1].label, "%d.%.2dg", selected_node.mass / 100, selected_node.mass % 100);
+          display.drawBitmap(SCREEN_WIDTH - FONT_WIDTH * len - 1 - 8, SCREEN_HEIGHT - FONT_HEIGHT, Bitmap::WEIGHT8X8, 8, 8, SSD1306_WHITE);
+          display.setCursor(SCREEN_WIDTH - FONT_WIDTH * len, SCREEN_HEIGHT - FONT_HEIGHT);
+          display.write(Ui::List::list[1].label);
+        }
       }
   } extern dashboard;
 };
