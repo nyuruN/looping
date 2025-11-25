@@ -11,7 +11,39 @@
       "left": 182.63,
       "attrs": { "i2cAddress": "0x3c" }
     },
-    { "type": "wokwi-ky-040", "id": "encoder1", "top": 366.5, "left": 287.2, "attrs": {} }
+    { "type": "wokwi-ky-040", "id": "encoder1", "top": 366.5, "left": 287.2, "attrs": {} },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "btn1",
+      "top": 307.3,
+      "left": 169.5,
+      "rotate": 270,
+      "attrs": { "color": "green", "xray": "1", "bounce": "0" }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "r1",
+      "top": 196.25,
+      "left": -49.4,
+      "rotate": 180,
+      "attrs": { "value": "1000" }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "btn2",
+      "top": 307.3,
+      "left": 236.7,
+      "rotate": 270,
+      "attrs": { "color": "green", "xray": "1", "bounce": "0" }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "r2",
+      "top": 195.4,
+      "left": 47.15,
+      "rotate": 180,
+      "attrs": { "value": "1000" }
+    }
   ],
   "connections": [
     [ "encoder1:DT", "nano:2", "green", [ "v-191.9", "h-172.8" ] ],
@@ -21,7 +53,15 @@
     [ "nano:GND.1", "oled1:GND", "black", [] ],
     [ "nano:A5", "oled1:SCL", "green", [] ],
     [ "nano:A4", "oled1:SDA", "green", [] ],
-    [ "nano:5V", "oled1:VCC", "red", [] ]
+    [ "nano:5V", "oled1:VCC", "red", [] ],
+    [ "r1:2", "btn1:2.r", "green", [ "v0" ] ],
+    [ "r1:1", "nano:GND.1", "black", [ "v0" ] ],
+    [ "btn1:1.r", "nano:VIN", "red", [ "v0" ] ],
+    [ "nano:8", "r1:2", "gold", [ "v0" ] ],
+    [ "nano:VIN", "btn2:1.r", "red", [ "v0" ] ],
+    [ "nano:GND.1", "r2:1", "black", [ "v0" ] ],
+    [ "r2:2", "btn2:2.r", "green", [ "v0" ] ],
+    [ "nano:A2", "r2:2", "gold", [ "v0" ] ]
   ],
   "dependencies": {}
 }
