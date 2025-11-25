@@ -554,87 +554,130 @@ namespace Menu {
       }
   } extern settings;
 
-  class Dashboard {
-    uint16_t maxHeight = 0;
-    uint16_t minHeight = -1;
+#define clamp(a, b, x) (max(a, min(b, x)))
 
-    uint16_t heights[5] = {100, 200, 150, 400, 500};
+  class Dashboard {
+    struct Node {
+      uint16_t height;
+      uint16_t mass;
+      uint16_t velocity;
+    };
+
+    uint16_t maxKey = 0;
+    uint16_t minKey = -1;
+
+    // EPPROM data
+    static const uint8_t nodes = 10;
+    uint16_t heights[nodes] = {100, 200, 150, 400, 500, 123, 92, 64, 364, 234};
+    uint16_t masses[nodes] = {123, 185, 135, 408, 449, 321, 92, 64, 364, 234};
+    uint16_t velocities[nodes] = {117, 219, 108, 365, 435, 696, 92, 64, 364, 234};
+
+    static constexpr uint8_t max_keys = 5;
+    uint8_t keys_offset = 0;
+    uint16_t keys[max_keys] = {0};
 
     int8_t selected = 0;
+    Node selected_node = {};
 
     public:
+      void refit() {
+        maxKey = 0;
+        minKey = -1;
+        for (uint8_t i = 0; i < max_keys; i++) {
+          keys[i] = heights[i + keys_offset];
+          maxKey = max(maxKey, keys[i]);
+          minKey = min(minKey, keys[i]);
+        }
+
+        selected_node = Node {
+          height: heights[selected],
+          mass: masses[selected],
+          velocity: velocities[selected]
+        };
+      }
+
       void up() {
-        selected = ((selected - 1 == -1) ? 4 : (selected - 1));
+        if (--selected == -1) {
+          selected = nodes - 1;
+          keys_offset = nodes - max_keys;
+        } else {
+          keys_offset = clamp(0, nodes - max_keys, selected - 2);
+        }
+
+        refit();
       }
 
       void down() {
-        selected = ((selected + 1 == 5) ? 0 : (selected + 1));
+        if (++selected == nodes) {
+          selected = 0;
+          keys_offset = 0;
+        } else {
+          keys_offset = clamp(0, nodes - max_keys, selected - 2);
+        }
+
+        refit();
       }
 
       void press() {
-        app.toNextState(App::State::Menu);
+        if (selected == nodes - 1)
+          app.toNextState(App::State::Menu);
       }
 
       void enter(App::State prevState) {
-        for (uint8_t i = 0; i < 5; i++) {
-          maxHeight = max(maxHeight, heights[i]);
-          minHeight = min(minHeight, heights[i]);
-        }
+        refit();
       }
 
       void exit(App::State nextState) {
       }
 
       void render() {
+        constexpr float GRAPH_Y = 7.0f;
+        constexpr float GRAPH_HEIGHT = 37.0f;
+
         // Render points
         uint8_t lastAnchorX = 0;
         uint8_t lastAnchorY = 0;
-        for (int8_t i = 0; i < 5; i++) {
-          float ratio = float(heights[i] - minHeight) / (float) (maxHeight - minHeight);
-          // 0 to 40
+        for (int8_t i = 0; i < max_keys; i++) {
+          constexpr int16_t POINT_PADDING = 3;
 
-          uint8_t anchorY = (1. - ratio) * 40. + 5.;
+          const float ratio = (float) (keys[i] - minKey) / (float) (maxKey - minKey);
+          uint8_t anchorY = (1. - ratio) * GRAPH_HEIGHT + GRAPH_Y;
           int8_t anchorX = 64 + (i - 2) * 20.;
 
           if (i)
-            display.drawLine(lastAnchorX, lastAnchorY, anchorX, anchorY, SSD1306_WHITE);
+            display.drawLine(lastAnchorX + POINT_PADDING, lastAnchorY, anchorX - POINT_PADDING, anchorY, SSD1306_WHITE);
 
-          if (i == 4) {
-            display.fillRoundRect(
-              anchorX - 3,
-              anchorY - 3,
-              7,
-              7,
+          if ((i + keys_offset) == selected) {
+            display.drawRoundRect(
+              anchorX - 4,
+              anchorY - 4,
+              9,
+              9,
               1,
-              SSD1306_BLACK
-            );
-            if (i == selected)
-              display.drawRoundRect(
-                anchorX - 4,
-                anchorY - 4,
-                9,
-                9,
-                1,
-                SSD1306_WHITE
-              );
-            display.drawBitmap(
-              anchorX - 3,
-              anchorY - 3,
-              Bitmap::MENU,
-              8,
-              8,
               SSD1306_WHITE
             );
+          }
+
+          if (i == 4) {
+            display.drawFastVLine(anchorX - 3, anchorY - 3, 8, SSD1306_BLACK);
+            display.setCursor(anchorX - 2, anchorY - 3);
+            display.write(239);
           } else
-            display.fillCircle(anchorX, anchorY, 2 + (i == selected), SSD1306_WHITE);          
+            display.fillCircle(anchorX, anchorY, 1, SSD1306_WHITE);          
 
           lastAnchorX = anchorX;
           lastAnchorY = anchorY;
         }
-
         
-        display.setCursor(0, SCREEN_HEIGHT - FONT_HEIGHT);
+        sprintf(Ui::List::list[0].label, "%d.%.2dcm", selected_node.height / 100, selected_node.height % 100);
+        display.drawBitmap(0, SCREEN_HEIGHT - FONT_HEIGHT, Bitmap::HEIGHT8X8, 8, 8, SSD1306_WHITE);
+        display.setCursor(8 + 1, SCREEN_HEIGHT - FONT_HEIGHT);
+        display.write(Ui::List::list[0].label);
 
+        sprintf(Ui::List::list[1].label, "%d.%.2dg", selected_node.mass / 100, selected_node.mass % 100);
+        display.drawBitmap(SCREEN_WIDTH - FONT_WIDTH * strlen(Ui::List::list[1].label) - 1 - 8, SCREEN_HEIGHT - FONT_HEIGHT, Bitmap::WEIGHT8X8, 8, 8, SSD1306_WHITE);
+        display.setCursor(SCREEN_WIDTH - FONT_WIDTH * strlen(Ui::List::list[1].label), SCREEN_HEIGHT - FONT_HEIGHT);
+        display.write(Ui::List::list[1].label);
       }
   } extern dashboard;
 };
