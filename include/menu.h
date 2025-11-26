@@ -114,11 +114,11 @@ namespace Menu {
     uint8_t digits[4] = {0}; // 99.99 MAX / stored in reverse order
     uint8_t cursor;
     bool editing = false;
-    uint8_t upAnim = 0;
-    uint8_t downAnim = 0;
+    uint8_t upAnim = 255;
+    uint8_t downAnim = 255;
 
     public:
-      uint16_t number = 1101; // 11.01
+      uint16_t number; // 11.01
       const char* unit;
 
       static inline uint8_t get_digit_at(uint16_t n, uint8_t index) {
@@ -441,7 +441,7 @@ namespace Menu {
         sprintf_P((Ui::List::list[0].label + 7), FMT, EEPROMSettings::timestamps[0].mass / 100, EEPROMSettings::timestamps[0].mass % 100);
 
         for (uint8_t i = 0; i < 3; ++i) {
-          sprintf_P((Ui::List::list[i].label + 7), FMT, EEPROMSettings::massPresets[i] / 100, EEPROMSettings::massPresets[i] % 100);
+          sprintf_P((Ui::List::list[i + 1].label + 7), FMT, EEPROMSettings::massPresets[i] / 100, EEPROMSettings::massPresets[i] % 100);
         }
       }
 
@@ -558,46 +558,41 @@ namespace Menu {
 #define clamp(a, b, x) (max(a, min(b, x)))
 
   class Dashboard {
-
-
     uint16_t maxKey = 0;
     uint16_t minKey = -1;
 
     // EPPROM data
-    static const uint8_t nodes = 10;
+    static constexpr uint8_t NODES = 10;
+    static constexpr uint8_t MAX_KEYS = 5;
 
-    static constexpr uint8_t max_keys = 5;
-    uint8_t keys_offset = 0;
-    uint16_t keys[max_keys] = {0};
-
+    uint8_t keysOffset = 0;
     int8_t selected = 0;
     EEPROMSettings::Timestamp* selectedTimestamp = nullptr;
 
-    public:
-      void refit() {
-        keys_offset = clamp(0, nodes - max_keys, selected - 2);
+    void refit() {
+      keysOffset = clamp(0, NODES - MAX_KEYS, selected - 2);
 
-        //maxKey = 0;
-        //minKey = -1;
-        for (uint8_t i = 0; i < max_keys; i++) {
-          keys[i] = EEPROMSettings::timestamps[i + keys_offset].height;
-          maxKey = max(maxKey, keys[i]);
-          minKey = min(minKey, keys[i]);
-        }
-
-        selectedTimestamp = &EEPROMSettings::timestamps[selected];
+      maxKey = 0;
+      minKey = -1;
+      for (uint8_t i = 0; i < NODES; ++i) {
+        maxKey = max(maxKey, EEPROMSettings::timestamps[i].height);
+        minKey = min(minKey, EEPROMSettings::timestamps[i].height);
       }
 
+      selectedTimestamp = &EEPROMSettings::timestamps[selected];
+    }
+
+    public:
       void up() {
-        if (++selected == nodes)
+        if (++selected == NODES)
           selected = 0;
         
         refit();
       }
-      
+
       void down() {
         if (--selected == -1)
-          selected = nodes - 1;
+          selected = NODES - 1;
 
         refit();
       }
@@ -609,6 +604,7 @@ namespace Menu {
 
       void enter(App::State prevState) {
         selected = 0;
+
         refit();
       }
 
@@ -619,28 +615,32 @@ namespace Menu {
         constexpr float GRAPH_Y = 7.0f;
         constexpr float GRAPH_HEIGHT = 37.0f;
 
+        static float scrollX = 0;
+        scrollX = Ui::Lerp(scrollX, keysOffset, 0.2);
+
         // Render points
-        uint8_t lastAnchorX = 0;
+        int16_t lastAnchorX = 0;
         uint8_t lastAnchorY = 0;
-        for (int8_t i = max_keys - 1; i >= 0; i--) {
+        
+        for (int8_t i = NODES - 1; i >= 0; --i) {
           constexpr int16_t POINT_PADDING = 0;
 
-          const float ratio = (float) (keys[i] - minKey) / (float) (maxKey - minKey);
+          const float ratio = (float) (EEPROMSettings::timestamps[i].height - minKey) / (float) (maxKey - minKey);
           uint8_t anchorY = (1. - ratio) * GRAPH_HEIGHT + GRAPH_Y;
-          int8_t anchorX = 64 - (i - 2) * 20.;
+          int16_t anchorX = 64 - (i - 2 - scrollX) * 20.;
 
           // Draw line
-          if (i < max_keys - 1)
+          if (i < NODES - 1)
             display.drawLine(lastAnchorX + POINT_PADDING, lastAnchorY, anchorX - POINT_PADDING, anchorY, SSD1306_WHITE);
 
           // Draw menu node
-          if (i + keys_offset == 0) {
-            constexpr char ASCII_MENU_ICON = 239;
+          if (i == 0) {
+            constexpr uint8_t ASCII_MENU_ICON = 239;
             display.fillRoundRect(
-              anchorX - 3,
-              anchorY - 3,
-              7,
-              7,
+              anchorX - 4,
+              anchorY - 4,
+              9,
+              9,
               1,
               SSD1306_BLACK
             );
@@ -652,7 +652,7 @@ namespace Menu {
           }
 
           // Draw selection indicator
-          if ((i + keys_offset) == selected) {
+          if (i == selected) {
             display.drawRoundRect(
               anchorX - 4,
               anchorY - 4,
@@ -672,13 +672,14 @@ namespace Menu {
 
         sprintf(Ui::List::list[0].label, FMT1, selectedTimestamp->height / 100, selectedTimestamp->height % 100);
         display.drawBitmap(0, SCREEN_HEIGHT - FONT_HEIGHT, Bitmap::HEIGHT8X8, 8, 8, SSD1306_WHITE);
-        display.setCursor(8 + 1, SCREEN_HEIGHT - FONT_HEIGHT);
+        display.setCursor(8 + 4, SCREEN_HEIGHT - FONT_HEIGHT);
         display.write(Ui::List::list[0].label);
 
         const uint8_t len = sprintf(Ui::List::list[1].label, FMT2, selectedTimestamp->mass / 100, selectedTimestamp->mass % 100);
-        display.drawBitmap(SCREEN_WIDTH - FONT_WIDTH * len - 1 - 8, SCREEN_HEIGHT - FONT_HEIGHT, Bitmap::MASS8X8, 8, 8, SSD1306_WHITE);
+        display.drawBitmap(SCREEN_WIDTH - FONT_WIDTH * len - 4 - 8, SCREEN_HEIGHT - FONT_HEIGHT, Bitmap::MASS8X8, 8, 8, SSD1306_WHITE);
         display.setCursor(SCREEN_WIDTH - FONT_WIDTH * len, SCREEN_HEIGHT - FONT_HEIGHT);
         display.write(Ui::List::list[1].label);
       }
+
   } extern dashboard;
 };

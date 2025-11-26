@@ -70,14 +70,19 @@ namespace LightBarrier {
 }
 
 void setup() {
-  app.setup();
+  TCCR0A = B10100011;
+  TCCR0B = B00000011;
+  OCR0A = 0x7f;
+  OCR0B = 0x7f;
+  pinMode(5, OUTPUT);
+  pinMode(6, OUTPUT);
+
   RotaryEncoder::setup();
   LightBarrier::setup();
 
   EEPROMSettings::load();
-  for (uint8_t i = 0; i < sizeof(EEPROMSettings::timestamps) / sizeof(EEPROMSettings::Timestamp); ++i) {
-    EEPROMSettings::timestamps[i].height = rand() % 300;
-  }
+
+  app.setup();
 }
 
 void loop() {

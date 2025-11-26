@@ -15,6 +15,7 @@ const char Menu::Menu::LABELS1[] PROGMEM = "Mass";
 const char Menu::Menu::LABELS2[] PROGMEM = "Height";
 const char Menu::Menu::LABELS3[] PROGMEM = "Settings";
 const char Menu::Menu::LABELS4[] PROGMEM = "Credits";
+
 const char* const Menu::Menu::LABELS[] PROGMEM = {
   LABELS0,
   LABELS1,
@@ -26,7 +27,7 @@ const char* const Menu::Menu::LABELS[] PROGMEM = {
 const uint8_t* const Menu::Menu::ICONS[] PROGMEM = {
   Bitmap::BACKARROW,
   Bitmap::MASS8X8,
-  Bitmap::ARROW,
+  Bitmap::HEIGHT8X8,
   Bitmap::GEAR,
   Bitmap::ARROW
 };
@@ -38,6 +39,7 @@ const char Menu::MassSetup::LABELS1[] PROGMEM = "Light  ";
 const char Menu::MassSetup::LABELS2[] PROGMEM = "Medium ";
 const char Menu::MassSetup::LABELS3[] PROGMEM = "Heavy  ";
 const char Menu::MassSetup::LABELS4[] PROGMEM = "Custom ";
+
 const char* const Menu::MassSetup::LABELS[] PROGMEM = {
   LABELS0,
   LABELS1,
