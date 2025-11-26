@@ -25,7 +25,7 @@ const char* const Menu::Menu::LABELS[] PROGMEM = {
 
 const uint8_t* const Menu::Menu::ICONS[] PROGMEM = {
   Bitmap::BACKARROW,
-  Bitmap::WEIGHT8X8,
+  Bitmap::MASS8X8,
   Bitmap::ARROW,
   Bitmap::GEAR,
   Bitmap::ARROW

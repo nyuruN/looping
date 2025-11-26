@@ -75,6 +75,9 @@ void setup() {
   LightBarrier::setup();
 
   EEPROMSettings::load();
+  for (uint8_t i = 0; i < sizeof(EEPROMSettings::timestamps) / sizeof(EEPROMSettings::Timestamp); ++i) {
+    EEPROMSettings::timestamps[i].height = rand() % 300;
+  }
 }
 
 void loop() {

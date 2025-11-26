@@ -348,9 +348,8 @@ namespace Menu {
             app.toNextState(App::State::MassSetup);
             break;
           case State::HeightSetup:
-            EEPROMSettings::load();
             numberSelect.unit = Units::CENTIMETER;
-            numberSelect.number = EEPROMSettings::height;
+            numberSelect.number = EEPROMSettings::timestamps[0].height;
             app.toNextState(App::State::NumberSelect);
             break;
           case State::Settings:
@@ -363,7 +362,7 @@ namespace Menu {
 
       void enter(App::State prevState) {
         if (prevState == App::State::NumberSelect) {
-          EEPROMSettings::height = numberSelect.number;
+          EEPROMSettings::timestamps[0].height = numberSelect.number;
           EEPROMSettings::save();
         }
 
@@ -417,12 +416,12 @@ namespace Menu {
           case State::Light:
           case State::Medium:
           case State::Heavy:
-            EEPROMSettings::masses[0] = EEPROMSettings::masses[(uint8_t) state];
+            EEPROMSettings::timestamps[0].mass = EEPROMSettings::massPresets[(uint8_t) state - 1];
             EEPROMSettings::save();
             app.toNextState(App::State::Menu);
             break;
           case State::Custom:
-            numberSelect.number = EEPROMSettings::masses[0];
+            numberSelect.number = EEPROMSettings::timestamps[0].mass;
             numberSelect.unit = Units::GRAM;
             app.toNextState(App::State::NumberSelect);
             break;
@@ -433,14 +432,16 @@ namespace Menu {
 
       void enter(App::State prevState) {
         if (prevState == App::State::NumberSelect) {
-          EEPROMSettings::masses[0] = numberSelect.number;
+          EEPROMSettings::timestamps[0].mass = numberSelect.number;
           EEPROMSettings::save();
         }
 
         Ui::List::create((const char**) LABELS, (const uint8_t**) ICONS, (uint8_t) State::End);
 
-        for (uint8_t i = 0; i < 4; ++i) {
-          sprintf_P((Ui::List::list[i].label + 7), FMT, EEPROMSettings::masses[i] / 100, EEPROMSettings::masses[i] % 100);
+        sprintf_P((Ui::List::list[0].label + 7), FMT, EEPROMSettings::timestamps[0].mass / 100, EEPROMSettings::timestamps[0].mass % 100);
+
+        for (uint8_t i = 0; i < 3; ++i) {
+          sprintf_P((Ui::List::list[i].label + 7), FMT, EEPROMSettings::massPresets[i] / 100, EEPROMSettings::massPresets[i] % 100);
         }
       }
 
@@ -480,7 +481,7 @@ namespace Menu {
           case State::Light:
           case State::Medium:
           case State::Heavy:
-            numberSelect.number = EEPROMSettings::masses[(uint8_t) state];
+            numberSelect.number = EEPROMSettings::massPresets[(uint8_t) state - 1];
             numberSelect.unit = Units::GRAM;
             app.toNextState(App::State::NumberSelect);
             break;
@@ -491,7 +492,7 @@ namespace Menu {
 
       void enter(App::State prevState) {
         if (prevState == App::State::NumberSelect) {
-          EEPROMSettings::masses[(uint8_t) state] = numberSelect.number;
+          EEPROMSettings::massPresets[(uint8_t) state - 1] = numberSelect.number;
           EEPROMSettings::save();
         }
 
@@ -557,69 +558,57 @@ namespace Menu {
 #define clamp(a, b, x) (max(a, min(b, x)))
 
   class Dashboard {
-    struct Node {
-      uint16_t height;
-      uint16_t mass;
-      uint16_t velocity;
-    };
+
 
     uint16_t maxKey = 0;
     uint16_t minKey = -1;
 
     // EPPROM data
     static const uint8_t nodes = 10;
-    uint16_t heights[nodes] = {100, 200, 150, 400, 500, 123, 92, 64, 364, 234};
-    uint16_t masses[nodes] = {123, 185, 135, 408, 449, 321, 92, 64, 364, 234};
-    uint16_t velocities[nodes] = {117, 219, 108, 365, 435, 696, 92, 64, 364, 234};
 
     static constexpr uint8_t max_keys = 5;
     uint8_t keys_offset = 0;
     uint16_t keys[max_keys] = {0};
 
     int8_t selected = 0;
-    Node selected_node = {};
+    EEPROMSettings::Timestamp* selectedTimestamp = nullptr;
 
     public:
       void refit() {
-        keys_offset = clamp(0, nodes - max_keys + 1, selected - 2);
+        keys_offset = clamp(0, nodes - max_keys, selected - 2);
 
-        maxKey = 0;
-        minKey = -1;
+        //maxKey = 0;
+        //minKey = -1;
         for (uint8_t i = 0; i < max_keys; i++) {
-          keys[i] = heights[i + keys_offset];
+          keys[i] = EEPROMSettings::timestamps[i + keys_offset].height;
           maxKey = max(maxKey, keys[i]);
           minKey = min(minKey, keys[i]);
         }
 
-        if (selected < nodes)
-          selected_node = Node {
-            height: heights[selected],
-            mass: masses[selected],
-            velocity: velocities[selected]
-          };
+        selectedTimestamp = &EEPROMSettings::timestamps[selected];
       }
 
       void up() {
+        if (++selected == nodes)
+          selected = 0;
+        
+        refit();
+      }
+      
+      void down() {
         if (--selected == -1)
           selected = nodes - 1;
 
         refit();
       }
 
-      void down() {
-        if (++selected == nodes + 1)
-          selected = 0;
-
-        refit();
-      }
-
       void press() {
-        if (selected == nodes)
+        if (selected == 0)
           app.toNextState(App::State::Menu);
       }
 
       void enter(App::State prevState) {
-        selected = nodes - 1;
+        selected = 0;
         refit();
       }
 
@@ -633,27 +622,33 @@ namespace Menu {
         // Render points
         uint8_t lastAnchorX = 0;
         uint8_t lastAnchorY = 0;
-        for (int8_t i = 0; i < max_keys; i++) {
-          constexpr int16_t POINT_PADDING = 3;
+        for (int8_t i = max_keys - 1; i >= 0; i--) {
+          constexpr int16_t POINT_PADDING = 0;
 
           const float ratio = (float) (keys[i] - minKey) / (float) (maxKey - minKey);
           uint8_t anchorY = (1. - ratio) * GRAPH_HEIGHT + GRAPH_Y;
-          int8_t anchorX = 64 + (i - 2) * 20.;
+          int8_t anchorX = 64 - (i - 2) * 20.;
+
+          // Draw line
+          if (i < max_keys - 1)
+            display.drawLine(lastAnchorX + POINT_PADDING, lastAnchorY, anchorX - POINT_PADDING, anchorY, SSD1306_WHITE);
 
           // Draw menu node
-          if (i + keys_offset == nodes) {
-            constexpr uint8_t GRAPH_MIDDLE = 27;
+          if (i + keys_offset == 0) {
             constexpr char ASCII_MENU_ICON = 239;
-            display.setCursor(anchorX - 2, GRAPH_MIDDLE - 3);
+            display.fillRoundRect(
+              anchorX - 3,
+              anchorY - 3,
+              7,
+              7,
+              1,
+              SSD1306_BLACK
+            );
+            display.setCursor(anchorX - 2, anchorY - 3);
             display.write(ASCII_MENU_ICON);
-            anchorY = GRAPH_MIDDLE;
-          } else {
-            // Draw line
-            if (i)
-              display.drawLine(lastAnchorX + POINT_PADDING, lastAnchorY, anchorX - POINT_PADDING, anchorY, SSD1306_WHITE);
-
+          } else {  
             // Draw point
-            display.fillCircle(anchorX, anchorY, 1, SSD1306_WHITE);          
+            display.fillCircle(anchorX, anchorY, 2, SSD1306_WHITE);          
           }
 
           // Draw selection indicator
@@ -672,21 +667,18 @@ namespace Menu {
           lastAnchorY = anchorY;
         }
         
-        if (selected == nodes) {
-          const uint8_t len = sprintf(Ui::List::list[0].label, "Menu");
-          display.setCursor(SCREEN_WIDTH / 2 - FONT_WIDTH * len / 2, SCREEN_HEIGHT - FONT_HEIGHT);
-          display.write(Ui::List::list[0].label);
-        } else {
-          sprintf(Ui::List::list[0].label, "%d.%.2dcm", selected_node.height / 100, selected_node.height % 100);
-          display.drawBitmap(0, SCREEN_HEIGHT - FONT_HEIGHT, Bitmap::HEIGHT8X8, 8, 8, SSD1306_WHITE);
-          display.setCursor(8 + 1, SCREEN_HEIGHT - FONT_HEIGHT);
-          display.write(Ui::List::list[0].label);
+        const char FMT1[] = "%d.%.2dcm";
+        const char FMT2[] = "%d.%.2dg";
 
-          const uint8_t len = sprintf(Ui::List::list[1].label, "%d.%.2dg", selected_node.mass / 100, selected_node.mass % 100);
-          display.drawBitmap(SCREEN_WIDTH - FONT_WIDTH * len - 1 - 8, SCREEN_HEIGHT - FONT_HEIGHT, Bitmap::WEIGHT8X8, 8, 8, SSD1306_WHITE);
-          display.setCursor(SCREEN_WIDTH - FONT_WIDTH * len, SCREEN_HEIGHT - FONT_HEIGHT);
-          display.write(Ui::List::list[1].label);
-        }
+        sprintf(Ui::List::list[0].label, FMT1, selectedTimestamp->height / 100, selectedTimestamp->height % 100);
+        display.drawBitmap(0, SCREEN_HEIGHT - FONT_HEIGHT, Bitmap::HEIGHT8X8, 8, 8, SSD1306_WHITE);
+        display.setCursor(8 + 1, SCREEN_HEIGHT - FONT_HEIGHT);
+        display.write(Ui::List::list[0].label);
+
+        const uint8_t len = sprintf(Ui::List::list[1].label, FMT2, selectedTimestamp->mass / 100, selectedTimestamp->mass % 100);
+        display.drawBitmap(SCREEN_WIDTH - FONT_WIDTH * len - 1 - 8, SCREEN_HEIGHT - FONT_HEIGHT, Bitmap::MASS8X8, 8, 8, SSD1306_WHITE);
+        display.setCursor(SCREEN_WIDTH - FONT_WIDTH * len, SCREEN_HEIGHT - FONT_HEIGHT);
+        display.write(Ui::List::list[1].label);
       }
   } extern dashboard;
 };

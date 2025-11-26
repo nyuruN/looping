@@ -138,7 +138,7 @@ namespace Bitmap {
     B00000001, B10000000, 
   };
 
-  const uint8_t WEIGHT8X8[] PROGMEM = {
+  const uint8_t MASS8X8[] PROGMEM = {
     B11010000,
     B10110000,
     B10011000,
