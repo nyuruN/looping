@@ -562,11 +562,11 @@ namespace Menu {
     uint16_t minKey = -1;
 
     // EPPROM data
-    static constexpr uint8_t NODES = 10;
-    static constexpr uint8_t MAX_KEYS = 5;
+    static constexpr uint8_t NODES = 6; // This value reflects the number of nodes stored in EEPROM
+    static constexpr uint8_t MAX_KEYS = 5; // This is used to clamp maximum scroll position
 
-    uint8_t keysOffset = 0;
-    int8_t selected = 0;
+    uint8_t keysOffset = 0; // This is the current scroll position
+    int8_t selected = 0; // Indicates currently selected node in EEPROM
     EEPROMSettings::Timestamp* selectedTimestamp = nullptr;
 
     void refit() {
@@ -583,6 +583,10 @@ namespace Menu {
     }
 
     public:
+      void add_timestamp() {
+        // TODO
+      }
+
       void up() {
         if (++selected == NODES)
           selected = 0;
@@ -625,8 +629,9 @@ namespace Menu {
         for (int8_t i = NODES - 1; i >= 0; --i) {
           constexpr int16_t POINT_PADDING = 0;
 
+          // Prevent visual artefact when maxKey == minKey; Center graph by default
           const float ratio = (float) (EEPROMSettings::timestamps[i].height - minKey) / (float) (maxKey - minKey);
-          uint8_t anchorY = (1. - ratio) * GRAPH_HEIGHT + GRAPH_Y;
+          uint8_t anchorY = (GRAPH_HEIGHT / 2 + GRAPH_Y) + uint8_t(GRAPH_HEIGHT * (0.5 - ratio));
           int16_t anchorX = 64 - (i - 2 - scrollX) * 20.;
 
           // Draw line
