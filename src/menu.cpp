@@ -81,3 +81,4 @@ Menu::MassSetup Menu::massSetup;
 Menu::MassPreset Menu::massPreset;
 Menu::Settings Menu::settings;
 Menu::Dashboard Menu::dashboard;
+Menu::InterruptUI Menu::interruptUI;

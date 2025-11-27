@@ -5,6 +5,7 @@
 #include "../include/app.h"
 #include "../include/display.h"
 #include "../include/settings.h"
+#include "../include/menu.h"
 
 Adafruit_SSD1306 display = Adafruit_SSD1306(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
@@ -30,42 +31,6 @@ namespace RotaryEncoder {
   inline void setup() {
     pinMode(encoderBtn, INPUT_PULLUP);
     attachInterrupt(digitalPinToInterrupt(encoderBtn), buttonISR, CHANGE);
-  }
-}
-
-namespace LightBarrier {
-  bool measuring = false;
-
-  inline void setup() {
-    // Setup pin change interrupts on D8 and A2.
-    PCICR |= (1 << PCIE1) | (1 << PCIE0);
-    PCMSK0 |= (1 << PCINT0);
-    PCMSK1 |= (1 << PCINT10);
-
-    // Setup Timer1 (16 bit) with prescaler 64 in free-running mode.
-    TCCR1A = B00000000;
-    TCCR1B = B00000011;
-    TCCR1C = B00000000;
-    TIMSK1 |= (1 << TOIE1);
-    TCNT1 = 0;
-  }
-
-  ISR(PCINT0_vect) {
-    TCNT1 = 0;
-    measuring = true;
-  }
-
-  ISR(PCINT1_vect) {
-    if (measuring) {
-      // Serial.print("Time: ");
-      // Serial.print(TCNT1 * 64.0 / 16000000.0);
-      // Serial.println("s");
-      measuring = false;
-    }
-  }
-
-  ISR(TIMER1_OVF_vect) {
-    measuring = false; // Abort measurement if timer1 overflows.
   }
 }
 
@@ -97,5 +62,10 @@ void loop() {
     }
   }
 
-  app.render();
+  Menu::interruptUI.update();
+
+  if (Menu::interruptUI.anim)
+    Menu::interruptUI.render();
+  else
+    app.render();
 }

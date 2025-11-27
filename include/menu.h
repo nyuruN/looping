@@ -7,6 +7,7 @@
 #include "./display.h"
 #include "./settings.h"
 #include "./ui.h"
+#include "./light_barrier.h"
 
 namespace Menu {
   namespace Units {
@@ -556,13 +557,18 @@ namespace Menu {
   } extern settings;
 
 #define clamp(a, b, x) (max(a, min(b, x)))
+// Yeah, I know... never do this
+#define TIMESTAMP_KEY velocity
 
   class Dashboard {
     uint16_t maxKey = 0;
     uint16_t minKey = -1;
 
-    // EPPROM data
-    static constexpr uint8_t NODES = 6; // This value reflects the number of nodes stored in EEPROM
+    // This value controls the number of timestamps shown
+    // It should not exceed maximum node storage
+    // Its value should be variable to enable timestamp history clears
+    // This value should be persistent aswell
+    uint8_t NODES = 1; 
     static constexpr uint8_t MAX_KEYS = 5; // This is used to clamp maximum scroll position
 
     uint8_t keysOffset = 0; // This is the current scroll position
@@ -575,16 +581,29 @@ namespace Menu {
       maxKey = 0;
       minKey = -1;
       for (uint8_t i = 0; i < NODES; ++i) {
-        maxKey = max(maxKey, EEPROMSettings::timestamps[i].height);
-        minKey = min(minKey, EEPROMSettings::timestamps[i].height);
+        maxKey = max(maxKey, EEPROMSettings::timestamps[i].TIMESTAMP_KEY);
+        minKey = min(minKey, EEPROMSettings::timestamps[i].TIMESTAMP_KEY);
       }
 
       selectedTimestamp = &EEPROMSettings::timestamps[selected];
     }
 
     public:
-      void add_timestamp() {
-        // TODO
+      /*
+      * @param measured_time Time between light barrier A to B in seconds
+      */
+      void add_timestamp(float measured_time) {
+        // TODO: Mock velocity calculation
+        EEPROMSettings::timestamps->velocity = 0.02 / measured_time * 1000.0;
+
+        // Shift all timestamps by one
+        for (uint8_t i = 10 - 1; i > 0; --i) {
+          EEPROMSettings::timestamps[i] = EEPROMSettings::timestamps[i - 1];
+        }
+
+        NODES = min(NODES + 1, 10);
+        
+        refit();
       }
 
       void up() {
@@ -629,8 +648,8 @@ namespace Menu {
         for (int8_t i = NODES - 1; i >= 0; --i) {
           constexpr int16_t POINT_PADDING = 0;
 
-          // Prevent visual artefact when maxKey == minKey; Center graph by default
-          const float ratio = (float) (EEPROMSettings::timestamps[i].height - minKey) / (float) (maxKey - minKey);
+          // Prevent visual artifact when maxKey == minKey; Center graph by default
+          const float ratio = (float) (EEPROMSettings::timestamps[i].TIMESTAMP_KEY - minKey) / (float) (maxKey - minKey);
           uint8_t anchorY = (GRAPH_HEIGHT / 2 + GRAPH_Y) + uint8_t(GRAPH_HEIGHT * (0.5 - ratio));
           int16_t anchorX = 64 - (i - 2 - scrollX) * 20.;
 
@@ -687,4 +706,56 @@ namespace Menu {
       }
 
   } extern dashboard;
+
+  class InterruptUI {
+    public:
+    bool anim = false;
+    uint8_t ball_pos = 0;
+    uint8_t bg_scroll = 0;
+
+    void update() {
+      if (!anim && LightBarrier::measuring) {
+        anim = true;
+        ball_pos = 0;
+      } else if (anim && !LightBarrier::measuring) {
+        if (ball_pos > SCREEN_WIDTH + 5) {
+          anim = false;
+          if (LightBarrier::success)
+            dashboard.add_timestamp(LightBarrier::time * 128.0 / 16000000.0);
+        }
+      }
+    }
+    void render() {
+      if (anim) {
+        display.clearDisplay();
+
+        if (!LightBarrier::measuring) {
+          ball_pos += 5;
+          display.setCursor(55, 10);
+          if (LightBarrier::success) {
+            display.print(LightBarrier::time * 128.0 / 16000000.0);
+            display.write('s');
+          }
+          
+        }
+        else {
+          ball_pos = Ui::Lerp(ball_pos, SCREEN_WIDTH / 2 + 5, 0.2);
+          bg_scroll += 5;
+        }
+          
+
+        const int16_t ballX = SCREEN_WIDTH - ball_pos;
+        const int16_t ballY = SCREEN_HEIGHT / 2;
+
+        display.fillCircle(ballX, ballY, 5, SSD1306_WHITE);
+
+        display.drawFastVLine(bg_scroll % SCREEN_WIDTH, SCREEN_HEIGHT / 2 + 5 + 1, 5, SSD1306_WHITE);
+        display.drawFastVLine((bg_scroll + SCREEN_WIDTH / 2) % SCREEN_WIDTH, SCREEN_HEIGHT / 2 + 5 + 1, 5, SSD1306_WHITE);
+
+        display.drawFastHLine(0, SCREEN_HEIGHT / 2 + 5 + 1, SCREEN_WIDTH, SSD1306_WHITE);
+
+        display.display();
+      }
+    }
+  } extern interruptUI;
 };
