@@ -568,7 +568,7 @@ namespace Menu {
     // It should not exceed maximum node storage
     // Its value should be variable to enable timestamp history clears
     // This value should be persistent aswell
-    uint8_t NODES = 1; 
+    uint8_t NODES = 10; 
     static constexpr uint8_t MAX_KEYS = 5; // This is used to clamp maximum scroll position
 
     uint8_t keysOffset = 0; // This is the current scroll position
@@ -648,38 +648,37 @@ namespace Menu {
         else {
           inspecting = true;
           sprintf(Ui::List::list[0].label, "Back");
-          sprintf(Ui::List::list[1].label, "Height %d.%.2dcm", selectedTimestamp->height / 100, selectedTimestamp->height % 100);
-          sprintf(Ui::List::list[2].label, "Mass   %d.%.2dg", selectedTimestamp->mass / 100, selectedTimestamp->mass % 100);
-          sprintf(Ui::List::list[3].label, "Time   %dms", selectedTimestamp->time);
+          sprintf(Ui::List::list[1].label, "Height%7d.%.2dcm", selectedTimestamp->height / 100, selectedTimestamp->height % 100);
+          sprintf(Ui::List::list[2].label, "Mass  %8d.%.2dg", selectedTimestamp->mass / 100, selectedTimestamp->mass % 100);
+          sprintf(Ui::List::list[3].label, "Time  %10ums", selectedTimestamp->time);
 
           constexpr float DISTANCE = 0.02; // meter
           const float velocity = DISTANCE / (selectedTimestamp->time / 1000.);
           const float kin =  0.5 * 100.
-            * float(selectedTimestamp->mass / 100000.) // 10mg to kg
-            * float(velocity) // mili m/s to m/s
-            * float(velocity); // mili m/s to m/s
+            * float(selectedTimestamp->mass) / 100000. // 10mg to kg
+            * velocity * velocity;
           const float pot =  9.81
-            * float(selectedTimestamp->mass / 100000.) // 10mg to kg
-            * float(selectedTimestamp->height / 10000.); // 100 micro m to m
+            * float(selectedTimestamp->mass) / 100000. // 10mg to kg
+            * float(selectedTimestamp->height) / 10000.; // 100 micro m to m
           const float diff = pot - kin;
 
 
           int tmpInt1 = velocity;                  // Get the integer.
           float tmpFrac = velocity - tmpInt1;      // Get fraction.
           int tmpInt2 = trunc(tmpFrac * 100);  // Turn into integer.
-          sprintf(Ui::List::list[4].label, "Vel.   %d.%.2dm/s", tmpInt1, tmpInt2);
+          sprintf(Ui::List::list[4].label, "Vel.  %6d.%.2dm/s", tmpInt1, tmpInt2);
           tmpInt1 = kin;                  // Get the integer.
           tmpFrac = kin - tmpInt1;      // Get fraction.
           tmpInt2 = trunc(tmpFrac * 100);  // Turn into integer.
-          sprintf(Ui::List::list[5].label, "Kin.   %d.%.2dJ", tmpInt1, tmpInt2);
+          sprintf(Ui::List::list[5].label, "Kin.E.%8d.%.2dJ", tmpInt1, tmpInt2);
           tmpInt1 = pot;                  // Get the integer.
           tmpFrac = pot - tmpInt1;      // Get fraction.
           tmpInt2 = trunc(tmpFrac * 100);  // Turn into integer.
-          sprintf(Ui::List::list[6].label, "Pot.   %d.%.2dJ", tmpInt1, tmpInt2);
+          sprintf(Ui::List::list[6].label, "Pot.E.%8d.%.2dJ", tmpInt1, tmpInt2);
           tmpInt1 = diff;                  // Get the integer.
           tmpFrac = diff - tmpInt1;      // Get fraction.
           tmpInt2 = trunc(tmpFrac * 100);  // Turn into integer.
-          sprintf(Ui::List::list[7].label, "Loss   %d.%.2dJ", tmpInt1, tmpInt2);
+          sprintf(Ui::List::list[7].label, "Loss  %8d.%.2dJ", tmpInt1, tmpInt2);
 
           Ui::List::list[0].icon = Bitmap::BACKARROW;
           Ui::List::list[1].icon = nullptr;
