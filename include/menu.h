@@ -558,7 +558,7 @@ namespace Menu {
 
 #define clamp(a, b, x) (max(a, min(b, x)))
 // Yeah, I know... never do this
-#define TIMESTAMP_KEY velocity
+#define TIMESTAMP_KEY time
 
   class Dashboard {
     uint16_t maxKey = 0;
@@ -575,6 +575,10 @@ namespace Menu {
     int8_t selected = 0; // Indicates currently selected node in EEPROM
     EEPROMSettings::Timestamp* selectedTimestamp = nullptr;
 
+    bool inspecting = false; // If a node is being inspected
+    uint8_t inspection = 0; // Inspection menu navigation
+    static constexpr uint8_t PROPERTIES_COUNT = 8; // Amount of labels in Inspection Menu
+
     void refit() {
       keysOffset = clamp(0, NODES - MAX_KEYS, selected - 2);
 
@@ -589,12 +593,14 @@ namespace Menu {
     }
 
     public:
+      static const char* const LABELS[];
+      static const uint8_t* const ICONS[];
+
       /*
       * @param measured_time Time between light barrier A to B in seconds
       */
       void add_timestamp(float measured_time) {
-        // TODO: Mock velocity calculation
-        EEPROMSettings::timestamps->velocity = 0.02 / measured_time * 1000.0;
+        EEPROMSettings::timestamps->time = measured_time * 1000.; // mili m/s
 
         // Shift all timestamps by one
         for (uint8_t i = 10 - 1; i > 0; --i) {
@@ -607,6 +613,11 @@ namespace Menu {
       }
 
       void up() {
+        if (inspecting && ++inspection == PROPERTIES_COUNT) {
+          inspection = 0;
+          return;
+        }
+
         if (++selected == NODES)
           selected = 0;
         
@@ -614,6 +625,11 @@ namespace Menu {
       }
 
       void down() {
+        if (inspecting && --inspection == (uint8_t) -1) {
+          inspection = PROPERTIES_COUNT - 1;
+          return;
+        }
+
         if (--selected == -1)
           selected = NODES - 1;
 
@@ -621,8 +637,59 @@ namespace Menu {
       }
 
       void press() {
+        if (inspecting) {
+          if (!inspection)
+            inspecting = false;
+          return;
+        }
+
         if (selected == 0)
           app.toNextState(App::State::Menu);
+        else {
+          inspecting = true;
+          sprintf(Ui::List::list[0].label, "Back");
+          sprintf(Ui::List::list[1].label, "Height %d.%.2dcm", selectedTimestamp->height / 100, selectedTimestamp->height % 100);
+          sprintf(Ui::List::list[2].label, "Mass   %d.%.2dg", selectedTimestamp->mass / 100, selectedTimestamp->mass % 100);
+          sprintf(Ui::List::list[3].label, "Time   %dms", selectedTimestamp->time);
+
+          constexpr float DISTANCE = 0.02; // meter
+          const float velocity = DISTANCE / (selectedTimestamp->time / 1000.);
+          const float kin =  0.5 * 100.
+            * float(selectedTimestamp->mass / 100000.) // 10mg to kg
+            * float(velocity) // mili m/s to m/s
+            * float(velocity); // mili m/s to m/s
+          const float pot =  9.81
+            * float(selectedTimestamp->mass / 100000.) // 10mg to kg
+            * float(selectedTimestamp->height / 10000.); // 100 micro m to m
+          const float diff = pot - kin;
+
+
+          int tmpInt1 = velocity;                  // Get the integer.
+          float tmpFrac = velocity - tmpInt1;      // Get fraction.
+          int tmpInt2 = trunc(tmpFrac * 100);  // Turn into integer.
+          sprintf(Ui::List::list[4].label, "Vel.   %d.%.2dm/s", tmpInt1, tmpInt2);
+          tmpInt1 = kin;                  // Get the integer.
+          tmpFrac = kin - tmpInt1;      // Get fraction.
+          tmpInt2 = trunc(tmpFrac * 100);  // Turn into integer.
+          sprintf(Ui::List::list[5].label, "Kin.   %d.%.2dJ", tmpInt1, tmpInt2);
+          tmpInt1 = pot;                  // Get the integer.
+          tmpFrac = pot - tmpInt1;      // Get fraction.
+          tmpInt2 = trunc(tmpFrac * 100);  // Turn into integer.
+          sprintf(Ui::List::list[6].label, "Pot.   %d.%.2dJ", tmpInt1, tmpInt2);
+          tmpInt1 = diff;                  // Get the integer.
+          tmpFrac = diff - tmpInt1;      // Get fraction.
+          tmpInt2 = trunc(tmpFrac * 100);  // Turn into integer.
+          sprintf(Ui::List::list[7].label, "Loss   %d.%.2dJ", tmpInt1, tmpInt2);
+
+          Ui::List::list[0].icon = Bitmap::BACKARROW;
+          Ui::List::list[1].icon = nullptr;
+          Ui::List::list[2].icon = nullptr;
+          Ui::List::list[3].icon = nullptr;
+          Ui::List::list[4].icon = nullptr;
+          Ui::List::list[5].icon = nullptr;
+          Ui::List::list[6].icon = nullptr;
+          Ui::List::list[7].icon = nullptr;
+        }
       }
 
       void enter(App::State prevState) {
@@ -635,6 +702,11 @@ namespace Menu {
       }
 
       void render() {
+        if (inspecting) {
+          Ui::List::render(0, PROPERTIES_COUNT, inspection);
+          return;
+        }
+
         constexpr float GRAPH_Y = 7.0f;
         constexpr float GRAPH_HEIGHT = 37.0f;
 

@@ -59,8 +59,12 @@ void Ui::List::render( uint8_t optionFirst, uint8_t optionEnd, uint8_t optionCur
 
   // Render items
   for (int s = optionFirst; s < optionEnd; ++s) {
-    display.drawBitmap(ANCHOR_X + PADDING_X, anchor_y + PADDING_Y + scroll_y, list[s].icon, 8, 8, WHITE);
-    display.setCursor(ANCHOR_X + PADDING_X + 8 + ICON_TEXT_GAP, anchor_y + PADDING_Y + scroll_y);
+    if (list[s].icon) {
+      display.drawBitmap(ANCHOR_X + PADDING_X, anchor_y + PADDING_Y + scroll_y, list[s].icon, 8, 8, WHITE);
+      display.setCursor(ANCHOR_X + PADDING_X + 8 + ICON_TEXT_GAP, anchor_y + PADDING_Y + scroll_y);
+    } else {
+      display.setCursor(ANCHOR_X + PADDING_X, anchor_y + PADDING_Y + scroll_y);
+    }
     
     if (s == optionCurrent) {
       display.drawRoundRect(
