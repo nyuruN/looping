@@ -613,8 +613,8 @@ namespace Menu {
       }
 
       void up() {
-        if (inspecting && ++inspection == PROPERTIES_COUNT) {
-          inspection = 0;
+        if (inspecting && --inspection == (uint8_t) -1) {
+          inspection = PROPERTIES_COUNT - 1;
           return;
         }
 
@@ -625,8 +625,8 @@ namespace Menu {
       }
 
       void down() {
-        if (inspecting && --inspection == (uint8_t) -1) {
-          inspection = PROPERTIES_COUNT - 1;
+        if (inspecting && ++inspection == PROPERTIES_COUNT) {
+          inspection = 0;
           return;
         }
 
