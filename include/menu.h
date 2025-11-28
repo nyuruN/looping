@@ -342,8 +342,10 @@ namespace Menu {
       void press() {
         switch (state) {
           case State::Back:
-          case State::Credits:
             app.toNextState(App::State::Dashboard);
+            break;
+          case State::Credits:
+            app.toNextState(App::State::Main);
             break;
           case State::MassSetup:
             app.toNextState(App::State::MassSetup);
