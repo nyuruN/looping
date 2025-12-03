@@ -793,7 +793,7 @@ namespace Menu {
           ball_pos += 5;
           display.setCursor(55, 10);
           if (LightBarrier::success) {
-            display.print(LightBarrier::time * 128.0 / 16000000.0);
+            display.print(LightBarrier::time * 64.0 / 16000000.0);
             display.write('s');
           }
           
