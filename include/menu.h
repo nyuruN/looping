@@ -650,9 +650,9 @@ namespace Menu {
         else {
           inspecting = true;
           sprintf(Ui::List::list[0].label, "Back");
-          sprintf(Ui::List::list[1].label, "Height%7d.%.2dcm", selectedTimestamp->height / 100, selectedTimestamp->height % 100);
-          sprintf(Ui::List::list[2].label, "Mass  %8d.%.2dg", selectedTimestamp->mass / 100, selectedTimestamp->mass % 100);
-          sprintf(Ui::List::list[3].label, "Time  %10ums", selectedTimestamp->time);
+          sprintf(Ui::List::list[1].label, "Height%6d.%.2dcm", selectedTimestamp->height / 100, selectedTimestamp->height % 100);
+          sprintf(Ui::List::list[2].label, "Mass  %7d.%.2dg", selectedTimestamp->mass / 100, selectedTimestamp->mass % 100);
+          sprintf(Ui::List::list[3].label, "Time  %9ums", selectedTimestamp->time);
 
           constexpr float DISTANCE = 0.02; // meter
           const float velocity = DISTANCE / (selectedTimestamp->time / 1000.);
@@ -668,28 +668,28 @@ namespace Menu {
           int tmpInt1 = velocity;                  // Get the integer.
           float tmpFrac = velocity - tmpInt1;      // Get fraction.
           int tmpInt2 = trunc(tmpFrac * 100);  // Turn into integer.
-          sprintf(Ui::List::list[4].label, "Vel.  %6d.%.2dm/s", tmpInt1, tmpInt2);
+          sprintf(Ui::List::list[4].label, "Vel.  %5d.%.2dm/s", tmpInt1, tmpInt2);
           tmpInt1 = kin;                  // Get the integer.
           tmpFrac = kin - tmpInt1;      // Get fraction.
           tmpInt2 = trunc(tmpFrac * 100);  // Turn into integer.
-          sprintf(Ui::List::list[5].label, "Kin.E.%8d.%.2dJ", tmpInt1, tmpInt2);
+          sprintf(Ui::List::list[5].label, "Kin.E.%7d.%.2dJ", tmpInt1, tmpInt2);
           tmpInt1 = pot;                  // Get the integer.
           tmpFrac = pot - tmpInt1;      // Get fraction.
           tmpInt2 = trunc(tmpFrac * 100);  // Turn into integer.
-          sprintf(Ui::List::list[6].label, "Pot.E.%8d.%.2dJ", tmpInt1, tmpInt2);
+          sprintf(Ui::List::list[6].label, "Pot.E.%7d.%.2dJ", tmpInt1, tmpInt2);
           tmpInt1 = diff;                  // Get the integer.
           tmpFrac = diff - tmpInt1;      // Get fraction.
           tmpInt2 = trunc(tmpFrac * 100);  // Turn into integer.
-          sprintf(Ui::List::list[7].label, "Loss  %8d.%.2dJ", tmpInt1, tmpInt2);
+          sprintf(Ui::List::list[7].label, "Loss  %6d.%.2dJ", tmpInt1, tmpInt2);
 
           Ui::List::list[0].icon = Bitmap::BACKARROW;
-          Ui::List::list[1].icon = nullptr;
-          Ui::List::list[2].icon = nullptr;
-          Ui::List::list[3].icon = nullptr;
-          Ui::List::list[4].icon = nullptr;
-          Ui::List::list[5].icon = nullptr;
-          Ui::List::list[6].icon = nullptr;
-          Ui::List::list[7].icon = nullptr;
+          Ui::List::list[1].icon = Bitmap::HEIGHT8X8;
+          Ui::List::list[2].icon = Bitmap::MASS8X8;
+          Ui::List::list[3].icon = Bitmap::GEAR;
+          Ui::List::list[4].icon = Bitmap::GEAR;
+          Ui::List::list[5].icon = Bitmap::GEAR;
+          Ui::List::list[6].icon = Bitmap::GEAR;
+          Ui::List::list[7].icon = Bitmap::GEAR;
         }
       }
 

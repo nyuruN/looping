@@ -36,9 +36,9 @@ namespace RotaryEncoder {
 
 void setup() {
   TCCR0A = B10100011;
-  TCCR0B = B00000011;
-  OCR0A = 0x7f;
-  OCR0B = 0x7f;
+  TCCR0B = B00000001;
+  OCR0A = 0xef;
+  OCR0B = 0xef;
   pinMode(5, OUTPUT);
   pinMode(6, OUTPUT);
 
@@ -48,6 +48,8 @@ void setup() {
   EEPROMSettings::load();
 
   app.setup();
+
+  // Serial.begin(9600);
 }
 
 void loop() {

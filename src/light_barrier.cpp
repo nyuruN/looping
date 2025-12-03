@@ -15,19 +15,21 @@ namespace LightBarrier {
     // Setup Timer1 (16 bit) with prescaler 64 in free-running mode.
     TCCR1A = B00000000;
     //TCCR1B = B00000011;
-    TCCR1B = B00000100; // TEMPORARY CHANGE TO 128 PRESCALAR FOR TESTING!!!
+    TCCR1B = B00000011; // TEMPORARY CHANGE TO 128 PRESCALAR FOR TESTING!!!
     TCCR1C = B00000000;
     TIMSK1 |= (1 << TOIE1);
     TCNT1 = 0;
   }
 
-  ISR(PCINT0_vect) {
-    TCNT1 = 0;
-    measuring = true;
-    success = false;
+  ISR(PCINT1_vect) {
+    if (!measuring) {
+      TCNT1 = 0;
+      measuring = true;
+      success = false;
+    }
   }
 
-  ISR(PCINT1_vect) {
+  ISR(PCINT0_vect) {
     if (measuring) {
       // Serial.print("Time: ");
       // Serial.print(TCNT1 * 64.0 / 16000000.0);
@@ -35,6 +37,7 @@ namespace LightBarrier {
       measuring = false;
       time = TCNT1;
       success = true;
+      // Serial.println(TCNT1);
     }
   }
 
