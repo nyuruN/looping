@@ -52,7 +52,7 @@ namespace Menu {
       }
 
       void render() {
-        float t = float(millis()) / 250.0;
+        float t = float(millis() >> 6) / 180.0;
 
         // Move back and forth after a sine wave
         int8_t offsetX = int(sin(t)* 10.);
@@ -276,8 +276,8 @@ namespace Menu {
         const int8_t inverse = editing ? 1 : -1;
         
         //const int8_t wave = (1.0 + sin(millis() / 150.0)) * 2.0;
-
-        const int8_t wave = max(min(abs(int8_t((millis() >> 3) % 128) - 64), 48), 16) >> 3;
+        const int8_t t = (millis() >> 8) % 128;
+        const int8_t wave = max(min(abs(t - 64), 48), 16) >> 3;
 
         const int8_t offsetUp = offset_anim(float(upAnim) / 1000.0);
         const int8_t offsetDown = offset_anim(float(downAnim) / 1000.0);
@@ -664,23 +664,10 @@ namespace Menu {
             * float(selectedTimestamp->height) / 10000.; // 100 micro m to m
           const float diff = pot - kin;
 
-
-          int tmpInt1 = velocity;                  // Get the integer.
-          float tmpFrac = velocity - tmpInt1;      // Get fraction.
-          int tmpInt2 = trunc(tmpFrac * 100);  // Turn into integer.
-          sprintf(Ui::List::list[4].label, "Vel.  %5d.%.2dm/s", tmpInt1, tmpInt2);
-          tmpInt1 = kin;                  // Get the integer.
-          tmpFrac = kin - tmpInt1;      // Get fraction.
-          tmpInt2 = trunc(tmpFrac * 100);  // Turn into integer.
-          sprintf(Ui::List::list[5].label, "Kin.E.%7d.%.2dJ", tmpInt1, tmpInt2);
-          tmpInt1 = pot;                  // Get the integer.
-          tmpFrac = pot - tmpInt1;      // Get fraction.
-          tmpInt2 = trunc(tmpFrac * 100);  // Turn into integer.
-          sprintf(Ui::List::list[6].label, "Pot.E.%7d.%.2dJ", tmpInt1, tmpInt2);
-          tmpInt1 = diff;                  // Get the integer.
-          tmpFrac = diff - tmpInt1;      // Get fraction.
-          tmpInt2 = trunc(tmpFrac * 100);  // Turn into integer.
-          sprintf(Ui::List::list[7].label, "Loss  %6d.%.2dJ", tmpInt1, tmpInt2);
+          sprintf(Ui::List::list[4].label, "Vel.  %5u.%.2um/s", uint16_t(velocity),  (uint8_t) trunc((velocity - uint16_t(velocity)) * 100.));
+          sprintf(Ui::List::list[5].label, "Kin.E.%7u.%.2uJ", uint16_t(kin), (uint8_t) trunc((kin - uint16_t(kin)) * 100.));
+          sprintf(Ui::List::list[6].label, "Pot.E.%7u.%.2uJ", uint16_t(pot), (uint8_t) trunc((pot - uint16_t(pot)) * 100.));
+          sprintf(Ui::List::list[7].label, "Loss  %7u.%.2uJ", uint16_t(diff), (uint8_t) trunc((diff - uint16_t(diff)) * 100.));
 
           Ui::List::list[0].icon = Bitmap::BACKARROW;
           Ui::List::list[1].icon = Bitmap::HEIGHT8X8;
@@ -794,7 +781,7 @@ namespace Menu {
         if (ball_pos > SCREEN_WIDTH + 5) {
           anim = false;
           if (LightBarrier::success)
-            dashboard.add_timestamp(LightBarrier::time * 128.0 / 16000000.0);
+            dashboard.add_timestamp(LightBarrier::time * 64.0 / 16000000.0);
         }
       }
     }
