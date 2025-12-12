@@ -12,25 +12,28 @@ Adafruit_SSD1306 display = Adafruit_SSD1306(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, 
 App app = App();
 Encoder encoder(2, 4);
 
-namespace RotaryEncoder {
-  int encoderBtn = 3;
+namespace EncoderButton {
+  constexpr uint8_t encoderBtn = 3;
   volatile unsigned long lastPress = millis();
+  bool pressed = false;
 
-  void button() {
-    app.press();
-  }
   void buttonISR(){
-    bool b = digitalRead(3);
-    if (millis() - lastPress < 200)
-      return;
-    if (!b)
-      button();
     lastPress = millis();
   }
 
   inline void setup() {
     pinMode(encoderBtn, INPUT_PULLUP);
     attachInterrupt(digitalPinToInterrupt(encoderBtn), buttonISR, CHANGE);
+  }
+
+  inline void update() {
+    if ((millis() - lastPress) > 20) {
+      bool b = digitalRead(encoderBtn);
+      if (pressed != b && !b) {
+        app.press();
+      }
+      pressed = b;
+    }
   }
 }
 
@@ -42,7 +45,7 @@ void setup() {
   pinMode(5, OUTPUT);
   pinMode(6, OUTPUT);
 
-  RotaryEncoder::setup();
+  EncoderButton::setup();
   LightBarrier::setup();
 
   EEPROMSettings::load();
@@ -65,6 +68,7 @@ void loop() {
   }
 
   Menu::interruptUI.update();
+  EncoderButton::update();
 
   if (Menu::interruptUI.anim)
     Menu::interruptUI.render();
