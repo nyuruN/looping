@@ -60,6 +60,8 @@
 
 // SOME DEFINES AND STATIC VARIABLES USED INTERNALLY -----------------------
 
+#define SSD1306_NO_SPLASH
+
 #if defined(I2C_BUFFER_LENGTH)
 #define WIRE_MAX min(256, I2C_BUFFER_LENGTH) ///< Particle or similar Wire lib
 #elif defined(BUFFER_LENGTH)
