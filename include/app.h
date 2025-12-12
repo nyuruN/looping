@@ -5,19 +5,18 @@
 class App {
   public:
     enum class State {
-      Main,
+      NumberSelect,
       Menu,
       MassSetup,
       MassPreset,
-      NumberSelect,
-      Dashboard,
       Settings,
       Credits,
-      End
-    };
+      Dashboard,
+      Measurement,
+      Inspector
+    } state = State::Dashboard;
 
   private:
-    State state = State::Dashboard;
     State nextState = state;
 
   public:

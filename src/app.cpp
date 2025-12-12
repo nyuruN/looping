@@ -19,8 +19,8 @@ void App::setup() {
 
 void App::up() {
   switch (state) {
-    case State::Main:
-      Menu::main.up();
+    case State::NumberSelect:
+      Menu::numberSelect.up();
       break;
     case State::Menu:
       Menu::menu.up();
@@ -28,17 +28,23 @@ void App::up() {
     case State::MassSetup:
       Menu::massSetup.up();
       break;
-    case State::NumberSelect:
-      Menu::numberSelect.up();
+    case State::MassPreset:
+      Menu::massPreset.up();
       break;
     case State::Settings:
       Menu::settings.up();
       break;
+    case State::Credits:
+      Menu::credits.up();
+      break;
     case State::Dashboard:
       Menu::dashboard.up();
       break;
-    case State::MassPreset:
-      Menu::massPreset.up();
+    case State::Measurement:
+      Menu::measurement.up();
+      break;
+    case State::Inspector:
+      Menu::inspector.up();
       break;
     default:
       break;
@@ -47,8 +53,8 @@ void App::up() {
 
 void App::down() {
   switch (state) {
-    case State::Main:
-      Menu::main.down();
+    case State::NumberSelect:
+      Menu::numberSelect.down();
       break;
     case State::Menu:
       Menu::menu.down();
@@ -56,17 +62,23 @@ void App::down() {
     case State::MassSetup:
       Menu::massSetup.down();
       break;
-    case State::NumberSelect:
-      Menu::numberSelect.down();
+    case State::MassPreset:
+      Menu::massPreset.down();
       break;
     case State::Settings:
       Menu::settings.down();
       break;
+    case State::Credits:
+      Menu::credits.down();
+      break;
     case State::Dashboard:
       Menu::dashboard.down();
       break;
-    case State::MassPreset:
-      Menu::massPreset.down();
+    case State::Measurement:
+      Menu::measurement.down();
+      break;
+    case State::Inspector:
+      Menu::inspector.down();
       break;
     default:
       break;
@@ -75,8 +87,8 @@ void App::down() {
 
 void App::press() {
   switch (state) {
-    case State::Main:
-      Menu::main.press();
+    case State::NumberSelect:
+      Menu::numberSelect.press();
       break;
     case State::Menu:
       Menu::menu.press();
@@ -84,17 +96,23 @@ void App::press() {
     case State::MassSetup:
       Menu::massSetup.press();
       break;
-    case State::NumberSelect:
-      Menu::numberSelect.press();
+    case State::MassPreset:
+      Menu::massPreset.press();
       break;
     case State::Settings:
       Menu::settings.press();
       break;
+    case State::Credits:
+      Menu::credits.press();
+      break;
     case State::Dashboard:
       Menu::dashboard.press();
       break;
-    case State::MassPreset:
-      Menu::massPreset.press();
+    case State::Measurement:
+      Menu::measurement.press();
+      break;
+    case State::Inspector:
+      Menu::inspector.press();
       break;
     default:
       break;
@@ -110,8 +128,8 @@ void App::enter() {
   state = nextState;
 
   switch (state) {
-    case State::Main:
-      Menu::main.enter(prevState);
+    case State::NumberSelect:
+      Menu::numberSelect.enter(prevState);
       break;
     case State::Menu:
       Menu::menu.enter(prevState);
@@ -119,17 +137,23 @@ void App::enter() {
     case State::MassSetup:
       Menu::massSetup.enter(prevState);
       break;
-    case State::NumberSelect:
-      Menu::numberSelect.enter(prevState);
+    case State::MassPreset:
+      Menu::massPreset.enter(prevState);
       break;
     case State::Settings:
       Menu::settings.enter(prevState);
       break;
+    case State::Credits:
+      Menu::credits.enter(prevState);
+      break;
     case State::Dashboard:
       Menu::dashboard.enter(prevState);
       break;
-    case State::MassPreset:
-      Menu::massPreset.enter(prevState);
+    case State::Measurement:
+      Menu::measurement.enter(prevState);
+      break;
+    case State::Inspector:
+      Menu::inspector.enter(prevState);
       break;
     default:
       break;
@@ -138,8 +162,8 @@ void App::enter() {
 
 void App::exit() {
   switch (state) {
-    case State::Main:
-      Menu::main.exit(nextState);
+    case State::NumberSelect:
+      Menu::numberSelect.exit(nextState);
       break;
     case State::Menu:
       Menu::menu.exit(nextState);
@@ -147,17 +171,23 @@ void App::exit() {
     case State::MassSetup:
       Menu::massSetup.exit(nextState);
       break;
-    case State::NumberSelect:
-      Menu::numberSelect.exit(nextState);
+    case State::MassPreset:
+      Menu::massPreset.exit(nextState);
       break;
     case State::Settings:
       Menu::settings.exit(nextState);
       break;
+    case State::Credits:
+      Menu::credits.exit(nextState);
+      break;
     case State::Dashboard:
       Menu::dashboard.exit(nextState);
       break;
-    case State::MassPreset:
-      Menu::massPreset.exit(nextState);
+    case State::Measurement:
+      Menu::measurement.exit(nextState);
+      break;
+    case State::Inspector:
+      Menu::inspector.exit(nextState);
       break;
     default:
       break;
@@ -173,8 +203,8 @@ void App::render() {
   display.clearDisplay();
 
   switch (state) {
-    case State::Main:
-      Menu::main.render();
+    case State::NumberSelect:
+      Menu::numberSelect.render();
       break;
     case State::Menu:
       Menu::menu.render();
@@ -182,17 +212,23 @@ void App::render() {
     case State::MassSetup:
       Menu::massSetup.render();
       break;
-    case State::NumberSelect:
-      Menu::numberSelect.render();
+    case State::MassPreset:
+      Menu::massPreset.render();
       break;
     case State::Settings:
       Menu::settings.render();
       break;
+    case State::Credits:
+      Menu::credits.render();
+      break;
     case State::Dashboard:
       Menu::dashboard.render();
       break;
-    case State::MassPreset:
-      Menu::massPreset.render();
+    case State::Measurement:
+      Menu::measurement.render();
+      break;
+    case State::Inspector:
+      Menu::inspector.render();
       break;
     default:
       break;

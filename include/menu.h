@@ -16,90 +16,7 @@ namespace Menu {
     extern const char CENTIMETER[];
   }
 
-  class Main {
-    static constexpr uint8_t MAX = 18;
-    int8_t selection = 0;
-
-    float offsetPrev = 0.0;
-    float offset = 0.0;
-    float offsetNext = 0.0;
-
-    public:
-      static const char STR[] PROGMEM;
-
-      void up() {
-        selection = (selection == 0) ? MAX - 1 : selection - 1; 
-        offsetNext = offset;
-        offset = offsetPrev;
-        offsetPrev = 0.0;
-      }
-
-      void down() {
-        selection = (selection == MAX - 1) ? 0 : selection + 1;
-        offsetPrev = offset;
-        offset = offsetNext;
-        offsetNext = 0.0;
-      }
-
-      void press() {
-        app.toNextState(App::State::Menu);
-      }
-
-      void enter(App::State prevState) {
-      }
-
-      void exit(App::State nextState) {
-      }
-
-      void render() {
-        float t = float(millis() >> 6) / 180.0;
-
-        // Move back and forth after a sine wave
-        int8_t offsetX = int(sin(t)* 10.);
-        t = sin(t);
-        t = 1.0 - t * t;
-        t *= 10.0;
-
-        // Move up and down after a up side down parabula
-        int8_t offsetY = int(t);
-
-        display.drawBitmap(
-          display.width() / 2 - 8 + offsetX,
-          display.height() / 2 - (FONT_HEIGHT + 16 + 2) / 2 - offsetY,
-          Bitmap::SKULL, 16, 16, WHITE
-        );
-
-        display.setCursor(
-          SCREEN_WIDTH / 2 - (FONT_WIDTH * 17 / 2),
-          SCREEN_HEIGHT / 2 - (FONT_HEIGHT + 16 + 2) / 2 + 16 + 2
-        );
-
-        int8_t anchorX = SCREEN_WIDTH / 2 - (FONT_WIDTH * 17 / 2);
-        constexpr int8_t ANCHOR_Y = SCREEN_HEIGHT / 2 - (FONT_HEIGHT + 16 + 2) / 2 + 16 + 2;
-
-        float real_offset = 3.0;
-
-        offset = Ui::Lerp(offset, real_offset, 0.4);
-        offsetNext = Ui::Lerp(offsetNext, 0.0, 0.4);
-        offsetPrev = Ui::Lerp(offsetPrev, 0.0, 0.4);
-
-        for (uint8_t i = 0; i < MAX; ++i) {
-          float currentOffset = 0;
-
-          if (selection == i) {
-            currentOffset = offset;
-          } else if (selection - 1 == i) {
-            currentOffset = offsetPrev;
-          } else if (selection + 1 == i) {
-            currentOffset = offsetNext;
-          }
-
-          display.setCursor(anchorX, round(ANCHOR_Y - currentOffset));
-          display.write(pgm_read_byte_near(STR + i));
-          anchorX += FONT_WIDTH;
-        }
-      }
-  } extern main; 
+  constexpr float DISTANCE = 0.023 * 10000000.0; // millimeter
 
   class NumberSelect {
     enum class State {
@@ -118,8 +35,16 @@ namespace Menu {
     uint8_t upAnim = 255;
     uint8_t downAnim = 255;
 
+    float offset_anim(float t) {
+      constexpr float AMPLITUDE = 8.0;
+      constexpr float DURATION = 0.2;
+      constexpr float MULTIPLIER = 1.0 / (DURATION / 2.0);
+      // Quatratic function with natural rise & fall
+      return AMPLITUDE * max(0.0, 1.0 - (MULTIPLIER * t - 1.0) * (MULTIPLIER * t - 1.0));
+    }
+
     public:
-      uint16_t number; // 11.01
+      uint16_t number; // xxx.xx g
       const char* unit;
 
       static inline uint8_t get_digit_at(uint16_t n, uint8_t index) {
@@ -190,21 +115,14 @@ namespace Menu {
       }
 
       void enter(App::State prevState) {
-        this->prevState = prevState;
+        if (prevState != App::State::Measurement && prevState != App::State::Inspector)
+          this->prevState = prevState;
         for (uint8_t i = 0; i < sizeof(digits); ++i) {
           digits[i] = get_digit_at(number, sizeof(digits) - i - 1);
         }
       }
 
       void exit(App::State nextState) {
-      }
-
-      float offset_anim(float t) {
-        constexpr float AMPLITUDE = 8.0;
-        constexpr float DURATION = 0.2;
-        constexpr float MULTIPLIER = 1.0 / (DURATION / 2.0);
-        // Quatratic function with natural rise & fall
-        return AMPLITUDE * max(0.0, 1.0 - (MULTIPLIER * t - 1.0) * (MULTIPLIER * t - 1.0));
       }
 
       void render() {
@@ -275,9 +193,9 @@ namespace Menu {
 
         const int8_t inverse = editing ? 1 : -1;
         
-        //const int8_t wave = (1.0 + sin(millis() / 150.0)) * 2.0;
-        const int8_t t = (millis() >> 8) % 128;
-        const int8_t wave = max(min(abs(t - 64), 48), 16) >> 3;
+        // const int8_t t = (millis() >> 3) % 128;
+        const int8_t wave = (1.0 + sin(millis() / 150.0)) * 2.0;
+        // const int8_t wave = max(min(abs(t - 64), 48), 16) >> 3;
 
         const int8_t offsetUp = offset_anim(float(upAnim) / 1000.0);
         const int8_t offsetDown = offset_anim(float(downAnim) / 1000.0);
@@ -344,9 +262,6 @@ namespace Menu {
           case State::Back:
             app.toNextState(App::State::Dashboard);
             break;
-          case State::Credits:
-            app.toNextState(App::State::Main);
-            break;
           case State::MassSetup:
             app.toNextState(App::State::MassSetup);
             break;
@@ -357,6 +272,9 @@ namespace Menu {
             break;
           case State::Settings:
             app.toNextState(App::State::Settings);
+            break;
+          case State::Credits:
+            app.toNextState(App::State::Credits);
             break;
           default:
             break;
@@ -558,131 +476,151 @@ namespace Menu {
       }
   } extern settings;
 
-#define clamp(a, b, x) (max(a, min(b, x)))
-// Yeah, I know... never do this
-#define TIMESTAMP_KEY time
+  class Credits {
+    static constexpr uint8_t MAX = 18;
+    int8_t selection = 0;
+
+    float offsetPrev = 0.0;
+    float offset = 0.0;
+    float offsetNext = 0.0;
+
+    public:
+      static const char STR[] PROGMEM;
+
+      void up() {
+        selection = (selection == 0) ? MAX - 1 : selection - 1; 
+        offsetNext = offset;
+        offset = offsetPrev;
+        offsetPrev = 0.0;
+      }
+
+      void down() {
+        selection = (selection == MAX - 1) ? 0 : selection + 1;
+        offsetPrev = offset;
+        offset = offsetNext;
+        offsetNext = 0.0;
+      }
+
+      void press() {
+        app.toNextState(App::State::Menu);
+      }
+
+      void enter(App::State prevState) {
+      }
+
+      void exit(App::State nextState) {
+      }
+
+      void render() {
+        float t = float(millis()) / 256.0;
+
+        // Move back and forth after a sine wave
+        int8_t offsetX = int(sin(t)* 10.);
+        t = sin(t);
+        t = 1.0 - t * t;
+        t *= 10.0;
+
+        // Move up and down after a up side down parabula
+        int8_t offsetY = int(t);
+
+        display.drawBitmap(
+          display.width() / 2 - 8 + offsetX,
+          display.height() / 2 - (FONT_HEIGHT + 16 + 2) / 2 - offsetY,
+          Bitmap::SKULL, 16, 16, WHITE
+        );
+
+        display.setCursor(
+          SCREEN_WIDTH / 2 - (FONT_WIDTH * 17 / 2),
+          SCREEN_HEIGHT / 2 - (FONT_HEIGHT + 16 + 2) / 2 + 16 + 2
+        );
+
+        int8_t anchorX = SCREEN_WIDTH / 2 - (FONT_WIDTH * 17 / 2);
+        constexpr int8_t ANCHOR_Y = SCREEN_HEIGHT / 2 - (FONT_HEIGHT + 16 + 2) / 2 + 16 + 2;
+
+        float real_offset = 3.0;
+
+        offset = Ui::Lerp(offset, real_offset, 0.4);
+        offsetNext = Ui::Lerp(offsetNext, 0.0, 0.4);
+        offsetPrev = Ui::Lerp(offsetPrev, 0.0, 0.4);
+
+        for (uint8_t i = 0; i < MAX; ++i) {
+          float currentOffset = 0;
+
+          if (selection == i) {
+            currentOffset = offset;
+          } else if (selection - 1 == i) {
+            currentOffset = offsetPrev;
+          } else if (selection + 1 == i) {
+            currentOffset = offsetNext;
+          }
+
+          display.setCursor(anchorX, round(ANCHOR_Y - currentOffset));
+          display.write(pgm_read_byte_near(STR + i));
+          anchorX += FONT_WIDTH;
+        }
+      }
+  } extern credits; 
 
   class Dashboard {
-    uint16_t maxKey = 0;
-    uint16_t minKey = -1;
+    uint16_t maxKey;
+    uint16_t minKey;
 
-    // This value controls the number of timestamps shown
-    // It should not exceed maximum node storage
-    // Its value should be variable to enable timestamp history clears
-    // This value should be persistent aswell
-    uint8_t NODES = 10; 
+    static constexpr uint8_t NODES = 10; // This value controls the number of timestamps shown
     static constexpr uint8_t MAX_KEYS = 5; // This is used to clamp maximum scroll position
 
     uint8_t keysOffset = 0; // This is the current scroll position
     int8_t selected = 0; // Indicates currently selected node in EEPROM
-    EEPROMSettings::Timestamp* selectedTimestamp = nullptr;
-
-    bool inspecting = false; // If a node is being inspected
-    uint8_t inspection = 0; // Inspection menu navigation
-    static constexpr uint8_t PROPERTIES_COUNT = 8; // Amount of labels in Inspection Menu
 
     void refit() {
-      keysOffset = clamp(0, NODES - MAX_KEYS, selected - 2);
+      keysOffset = max(0, min(NODES - MAX_KEYS, selected - 2));
 
       maxKey = 0;
       minKey = -1;
       for (uint8_t i = 0; i < NODES; ++i) {
-        maxKey = max(maxKey, EEPROMSettings::timestamps[i].TIMESTAMP_KEY);
-        minKey = min(minKey, EEPROMSettings::timestamps[i].TIMESTAMP_KEY);
+        maxKey = max(maxKey, DISTANCE / (float) EEPROMSettings::timestamps[i].time);
+        minKey = min(minKey, DISTANCE / (float) EEPROMSettings::timestamps[i].time);
       }
 
       selectedTimestamp = &EEPROMSettings::timestamps[selected];
     }
 
     public:
-      static const char* const LABELS[];
-      static const uint8_t* const ICONS[];
+      EEPROMSettings::Timestamp* selectedTimestamp = nullptr;
 
-      /*
-      * @param measured_time Time between light barrier A to B in seconds
-      */
-      void add_timestamp(float measured_time) {
-        EEPROMSettings::timestamps->time = measured_time * 1000.; // mili m/s
+      void addTimestamp(float measured_time) {
+        EEPROMSettings::timestamps->time = measured_time * 100000.; // milli m/s
 
         // Shift all timestamps by one
         for (uint8_t i = 10 - 1; i > 0; --i) {
           EEPROMSettings::timestamps[i] = EEPROMSettings::timestamps[i - 1];
         }
 
-        NODES = min(NODES + 1, 10);
-        
+        EEPROMSettings::save();
+
         refit();
       }
 
       void up() {
-        if (inspecting && --inspection == (uint8_t) -1) {
-          inspection = PROPERTIES_COUNT - 1;
-          return;
-        }
-
         if (++selected == NODES)
           selected = 0;
-        
         refit();
       }
 
       void down() {
-        if (inspecting && ++inspection == PROPERTIES_COUNT) {
-          inspection = 0;
-          return;
-        }
-
         if (--selected == -1)
           selected = NODES - 1;
-
         refit();
       }
 
       void press() {
-        if (inspecting) {
-          if (!inspection)
-            inspecting = false;
-          return;
-        }
-
         if (selected == 0)
           app.toNextState(App::State::Menu);
         else {
-          inspecting = true;
-          sprintf(Ui::List::list[0].label, "Back");
-          sprintf(Ui::List::list[1].label, "Height%6d.%.2dcm", selectedTimestamp->height / 100, selectedTimestamp->height % 100);
-          sprintf(Ui::List::list[2].label, "Mass  %7d.%.2dg", selectedTimestamp->mass / 100, selectedTimestamp->mass % 100);
-          sprintf(Ui::List::list[3].label, "Time  %9ums", selectedTimestamp->time);
-
-          constexpr float DISTANCE = 0.02; // meter
-          const float velocity = DISTANCE / (selectedTimestamp->time / 1000.);
-          const float kin =  0.5 * 100.
-            * float(selectedTimestamp->mass) / 100000. // 10mg to kg
-            * velocity * velocity;
-          const float pot =  9.81
-            * float(selectedTimestamp->mass) / 100000. // 10mg to kg
-            * float(selectedTimestamp->height) / 10000.; // 100 micro m to m
-          const float diff = pot - kin;
-
-          sprintf(Ui::List::list[4].label, "Vel.  %5u.%.2um/s", uint16_t(velocity),  (uint8_t) trunc((velocity - uint16_t(velocity)) * 100.));
-          sprintf(Ui::List::list[5].label, "Kin.E.%7u.%.2uJ", uint16_t(kin), (uint8_t) trunc((kin - uint16_t(kin)) * 100.));
-          sprintf(Ui::List::list[6].label, "Pot.E.%7u.%.2uJ", uint16_t(pot), (uint8_t) trunc((pot - uint16_t(pot)) * 100.));
-          sprintf(Ui::List::list[7].label, "Loss  %7u.%.2uJ", uint16_t(diff), (uint8_t) trunc((diff - uint16_t(diff)) * 100.));
-
-          Ui::List::list[0].icon = Bitmap::BACKARROW;
-          Ui::List::list[1].icon = Bitmap::HEIGHT8X8;
-          Ui::List::list[2].icon = Bitmap::MASS8X8;
-          Ui::List::list[3].icon = Bitmap::GEAR;
-          Ui::List::list[4].icon = Bitmap::GEAR;
-          Ui::List::list[5].icon = Bitmap::GEAR;
-          Ui::List::list[6].icon = Bitmap::GEAR;
-          Ui::List::list[7].icon = Bitmap::GEAR;
+          app.toNextState(App::State::Inspector);
         }
       }
 
       void enter(App::State prevState) {
-        selected = 0;
-
         refit();
       }
 
@@ -690,11 +628,6 @@ namespace Menu {
       }
 
       void render() {
-        if (inspecting) {
-          Ui::List::render(0, PROPERTIES_COUNT, inspection);
-          return;
-        }
-
         constexpr float GRAPH_Y = 7.0f;
         constexpr float GRAPH_HEIGHT = 37.0f;
 
@@ -709,7 +642,7 @@ namespace Menu {
           constexpr int16_t POINT_PADDING = 0;
 
           // Prevent visual artifact when maxKey == minKey; Center graph by default
-          const float ratio = (float) (EEPROMSettings::timestamps[i].TIMESTAMP_KEY - minKey) / (float) (maxKey - minKey);
+          const float ratio = (float) (DISTANCE / (float) EEPROMSettings::timestamps[i].time - minKey) / (float) (maxKey - minKey);
           uint8_t anchorY = (GRAPH_HEIGHT / 2 + GRAPH_Y) + uint8_t(GRAPH_HEIGHT * (0.5 - ratio));
           int16_t anchorX = 64 - (i - 2 - scrollX) * 20.;
 
@@ -764,58 +697,147 @@ namespace Menu {
         display.setCursor(SCREEN_WIDTH - FONT_WIDTH * len, SCREEN_HEIGHT - FONT_HEIGHT);
         display.write(Ui::List::list[1].label);
       }
-
   } extern dashboard;
 
-  class InterruptUI {
+  class Measurement {
+    uint8_t ballPos = 0;
+    uint8_t bgScroll = 0;
+
     public:
-    bool anim = false;
-    uint8_t ball_pos = 0;
-    uint8_t bg_scroll = 0;
+      App::State prevState;
 
-    void update() {
-      if (!anim && LightBarrier::measuring) {
-        anim = true;
-        ball_pos = 0;
-      } else if (anim && !LightBarrier::measuring) {
-        if (ball_pos > SCREEN_WIDTH + 5) {
-          anim = false;
-          if (LightBarrier::success)
-            dashboard.add_timestamp(LightBarrier::time * 64.0 / 16000000.0);
-        }
+      void up() {
       }
-    }
-    void render() {
-      if (anim) {
-        display.clearDisplay();
 
-        if (!LightBarrier::measuring) {
-          ball_pos += 5;
-          display.setCursor(55, 10);
-          if (LightBarrier::success) {
-            display.print(LightBarrier::time * 64.0 / 16000000.0);
-            display.write('s');
+      void down() {
+      }
+
+      void press() {
+      }
+
+      void enter(App::State prevState) {
+        if (prevState != App::State::Measurement && prevState != App::State::Inspector)
+          this->prevState = prevState;
+        ballPos = 0;
+      }
+
+      void exit(App::State nextState) {
+      }
+
+      void render() {
+        if (LightBarrier::state == LightBarrier::State::Measuring) {
+          ballPos = Ui::Lerp(ballPos, SCREEN_WIDTH / 2.0 + 5, 0.2);
+          bgScroll += 5;
+        } else {
+          if (LightBarrier::state == LightBarrier::State::Success) {
+            LightBarrier::state = LightBarrier::State::Idle;
+            dashboard.addTimestamp(LightBarrier::time * 64.0 / F_CPU);
           }
-          
+          ballPos += 5;
+          if (ballPos > SCREEN_WIDTH + 5) {
+            if (LightBarrier::state == LightBarrier::State::Failed)
+              app.toNextState(prevState);
+            else {
+              dashboard.selectedTimestamp = &EEPROMSettings::timestamps[1];
+              app.toNextState(App::State::Inspector);
+            }
+            LightBarrier::state = LightBarrier::State::Idle;
+          }
         }
-        else {
-          ball_pos = Ui::Lerp(ball_pos, SCREEN_WIDTH / 2 + 5, 0.2);
-          bg_scroll += 5;
-        }
           
-
-        const int16_t ballX = SCREEN_WIDTH - ball_pos;
-        const int16_t ballY = SCREEN_HEIGHT / 2;
+        const int16_t ballX = SCREEN_WIDTH - ballPos;
+        constexpr int16_t ballY = SCREEN_HEIGHT / 2;
 
         display.fillCircle(ballX, ballY, 5, SSD1306_WHITE);
 
-        display.drawFastVLine(bg_scroll % SCREEN_WIDTH, SCREEN_HEIGHT / 2 + 5 + 1, 5, SSD1306_WHITE);
-        display.drawFastVLine((bg_scroll + SCREEN_WIDTH / 2) % SCREEN_WIDTH, SCREEN_HEIGHT / 2 + 5 + 1, 5, SSD1306_WHITE);
+        display.drawFastVLine(bgScroll % SCREEN_WIDTH, SCREEN_HEIGHT / 2 + 5 + 1, 5, SSD1306_WHITE);
+        display.drawFastVLine((bgScroll + SCREEN_WIDTH / 2) % SCREEN_WIDTH, SCREEN_HEIGHT / 2 + 5 + 1, 5, SSD1306_WHITE);
 
         display.drawFastHLine(0, SCREEN_HEIGHT / 2 + 5 + 1, SCREEN_WIDTH, SSD1306_WHITE);
-
-        display.display();
       }
-    }
-  } extern interruptUI;
+  } extern measurement;
+
+  class Inspector {
+    enum class State {
+      Back,
+      Mass,
+      Height,
+      Time,
+      Vel,
+      Kin,
+      Pot,
+      Loss,
+      End
+    } state = State::Back;
+
+
+    public:
+      static const char LABELS0[] PROGMEM;
+      static const char LABELS1[] PROGMEM;
+      static const char LABELS2[] PROGMEM;
+      static const char LABELS3[] PROGMEM;
+      static const char LABELS4[] PROGMEM;
+      static const char LABELS5[] PROGMEM;
+      static const char LABELS6[] PROGMEM;
+
+      static const char* const LABELS[];
+      static const uint8_t* const ICONS[];
+
+      App::State prevState;
+
+      void up() {
+        state = (State) (((int8_t) state - 1 == -1) ? (int8_t) State::End - 1 : ((int8_t) state - 1));
+      }
+
+      void down() {
+        state = (State) (((int8_t) state + 1 == (int8_t) State::End) ? 0 : ((int8_t) state + 1));
+      }
+
+      void press() {
+        if (state == State::Back)
+          app.toNextState(prevState == App::State::Measurement ? measurement.prevState : prevState);
+      }
+
+      void enter(App::State prevState) {
+        if (prevState == App::State::Measurement)
+          Ui::List::progress = -0.2;
+        this->prevState = prevState;
+
+        sprintf_P(Ui::List::list[0].label, Menu::LABELS0);
+        sprintf_P(Ui::List::list[1].label, LABELS0, dashboard.selectedTimestamp->mass / 100, dashboard.selectedTimestamp->mass % 100);
+        sprintf_P(Ui::List::list[2].label, LABELS1, dashboard.selectedTimestamp->height / 100, dashboard.selectedTimestamp->height % 100);
+        sprintf_P(Ui::List::list[3].label, LABELS2, dashboard.selectedTimestamp->time / 100, dashboard.selectedTimestamp->time % 100);
+
+        const uint16_t velocity = DISTANCE / dashboard.selectedTimestamp->time;
+        const uint16_t kin = 0.5
+          * (float) dashboard.selectedTimestamp->mass
+          * velocity * velocity / 10000.0;
+        const uint16_t pot = 9.81
+          * (float) dashboard.selectedTimestamp->mass
+          * (float) dashboard.selectedTimestamp->height / 10000.0;
+        const int16_t diff = (int32_t) pot - (int32_t) kin;
+
+        sprintf_P(Ui::List::list[4].label, LABELS3, velocity / 100, velocity % 100);
+        sprintf_P(Ui::List::list[5].label, LABELS4, kin / 100, kin % 100);
+        sprintf_P(Ui::List::list[6].label, LABELS5, pot / 100, pot % 100);
+        sprintf_P(Ui::List::list[7].label, LABELS6, diff / 100, abs(diff) % 100);
+
+        Ui::List::list[0].icon = Bitmap::BACKARROW;
+        Ui::List::list[1].icon = Bitmap::MASS8X8;
+        Ui::List::list[2].icon = Bitmap::HEIGHT8X8;
+        Ui::List::list[3].icon = Bitmap::GEAR;
+        Ui::List::list[4].icon = Bitmap::GEAR;
+        Ui::List::list[5].icon = Bitmap::GEAR;
+        Ui::List::list[6].icon = Bitmap::GEAR;
+        Ui::List::list[7].icon = Bitmap::GEAR;
+      }
+
+      void exit(App::State nextState) {
+      }
+
+      void render() {
+        Ui::List::render((uint8_t) State::Back, (uint8_t) State::End, (uint8_t) state);
+      }
+
+  } extern inspector;
 };

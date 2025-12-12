@@ -1,10 +1,13 @@
-
 #include <Arduino.h>
 
+#include "app.h"
+#include "menu.h"
+
+#include "light_barrier.h"
+
 namespace LightBarrier {
-  volatile bool measuring = false;
   volatile uint16_t time = 0;
-  volatile bool success = false; // Indicates that no overflow happened
+  volatile State state = State::Idle;
 
   void setup() {
     // Setup pin change interrupts on D8 and A2.
@@ -14,34 +17,35 @@ namespace LightBarrier {
 
     // Setup Timer1 (16 bit) with prescaler 64 in free-running mode.
     TCCR1A = B00000000;
-    //TCCR1B = B00000011;
-    TCCR1B = B00000011; // TEMPORARY CHANGE TO 128 PRESCALAR FOR TESTING!!!
+    TCCR1B = B00000011;
     TCCR1C = B00000000;
     TIMSK1 |= (1 << TOIE1);
     TCNT1 = 0;
   }
 
   ISR(PCINT1_vect) {
-    if (!measuring) {
-      TCNT1 = 0;
-      measuring = true;
-      success = false;
+    if (digitalRead(A2)) {
+      if (app.state != App::State::Inspector || Menu::inspector.prevState != App::State::Measurement) {
+        state = State::Measuring;
+        app.toNextState(App::State::Measurement);
+        TCNT1 = 0;
+      }
+    } else {
     }
   }
 
   ISR(PCINT0_vect) {
-    if (measuring) {
-      // Serial.print("Time: ");
-      // Serial.print(TCNT1 * 64.0 / 16000000.0);
-      // Serial.println("s");
-      measuring = false;
-      time = TCNT1;
-      success = true;
-      // Serial.println(TCNT1);
+    if (digitalRead(8)) {
+      if (state == State::Measuring) {
+        time = TCNT1;
+        state = State::Success;
+      }
+    } else {
     }
   }
 
   ISR(TIMER1_OVF_vect) {
-    measuring = false; // Abort measurement if timer1 overflows.
+    if (state == State::Measuring)
+      state = State::Failed;
   }
 }

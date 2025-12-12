@@ -8,7 +8,7 @@ const char Menu::Units::GRAM[] = "g";
 const char Menu::Units::MILLIMETER[] = "mm";
 const char Menu::Units::CENTIMETER[] = "cm";
 
-const char Menu::Main::STR[] PROGMEM = "Imagine dying lol";
+const char Menu::Credits::STR[] PROGMEM = "Imagine dying lol";
 
 const char Menu::Menu::LABELS0[] PROGMEM = "Back";
 const char Menu::Menu::LABELS1[] PROGMEM = "Mass";
@@ -74,11 +74,20 @@ const uint8_t* const Menu::Settings::ICONS[] PROGMEM = {
   Bitmap::GEAR
 };
 
-Menu::Main Menu::main;
+const char Menu::Inspector::LABELS0[] PROGMEM = "Mass%9u.%.2dg";
+const char Menu::Inspector::LABELS1[] PROGMEM = "Height%6u.%.2dcm";
+const char Menu::Inspector::LABELS2[] PROGMEM = "Time%8u.%.2dms";
+const char Menu::Inspector::LABELS3[] PROGMEM = "Vel.%7u.%.2um/s";
+const char Menu::Inspector::LABELS4[] PROGMEM = "Kin.E.%6u.%.2umJ";
+const char Menu::Inspector::LABELS5[] PROGMEM = "Pot.E.%6u.%.2umJ";
+const char Menu::Inspector::LABELS6[] PROGMEM = "Loss%8d.%.2umJ";
+
 Menu::NumberSelect Menu::numberSelect;
 Menu::Menu Menu::menu;
 Menu::MassSetup Menu::massSetup;
 Menu::MassPreset Menu::massPreset;
 Menu::Settings Menu::settings;
+Menu::Credits Menu::credits;
 Menu::Dashboard Menu::dashboard;
-Menu::InterruptUI Menu::interruptUI;
+Menu::Measurement Menu::measurement;
+Menu::Inspector Menu::inspector;

@@ -5,7 +5,7 @@
 #include "../include/app.h"
 #include "../include/display.h"
 #include "../include/settings.h"
-#include "../include/menu.h"
+#include "../include/light_barrier.h"
 
 Adafruit_SSD1306 display = Adafruit_SSD1306(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
@@ -51,8 +51,6 @@ void setup() {
   EEPROMSettings::load();
 
   app.setup();
-
-  // Serial.begin(9600);
 }
 
 void loop() {
@@ -67,11 +65,7 @@ void loop() {
     }
   }
 
-  Menu::interruptUI.update();
   EncoderButton::update();
 
-  if (Menu::interruptUI.anim)
-    Menu::interruptUI.render();
-  else
-    app.render();
+  app.render();
 }
